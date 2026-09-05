@@ -1,0 +1,32 @@
+% =====================================================================
+%  cap02.tex — ENTREGA INDIVIDUAL del capítulo 2
+%
+%  Compilar desde la RAÍZ del repositorio:
+%      make cap02          (o)   latexmk -pdf cap02.tex
+%
+%  Genera un PDF autocontenido con: portada, índice de contenido,
+%  índice de figuras, índice de tablas, el capítulo y sus referencias IEEE.
+%  NO edites el contenido aquí: vive en capitulos/cap02/contenido.tex
+% =====================================================================
+\documentclass[12pt, letterpaper, oneside, openany]{book}
+
+\input{config/metadatos}
+\input{config/preambulo}
+\input{config/portada}
+
+\begin{document}
+
+% ------------------- Material preliminar -------------------
+\frontmatter
+\Portada{\TituloCapDos}{Entrega individual — Capítulo 2 de 7}
+\Indices
+
+% ------------------- Cuerpo -------------------
+\mainmatter
+\setcounter{chapter}{1}   % continúa la numeración del libro: capítulo 2
+\input{capitulos/cap02/contenido}
+
+% ------------------- Referencias -------------------
+\Referencias
+
+\end{document}

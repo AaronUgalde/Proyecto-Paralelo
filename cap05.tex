@@ -1,0 +1,32 @@
+% =====================================================================
+%  cap05.tex — ENTREGA INDIVIDUAL del capítulo 5
+%
+%  Compilar desde la RAÍZ del repositorio:
+%      make cap05          (o)   latexmk -pdf cap05.tex
+%
+%  Genera un PDF autocontenido con: portada, índice de contenido,
+%  índice de figuras, índice de tablas, el capítulo y sus referencias IEEE.
+%  NO edites el contenido aquí: vive en capitulos/cap05/contenido.tex
+% =====================================================================
+\documentclass[12pt, letterpaper, oneside, openany]{book}
+
+\input{config/metadatos}
+\input{config/preambulo}
+\input{config/portada}
+
+\begin{document}
+
+% ------------------- Material preliminar -------------------
+\frontmatter
+\Portada{\TituloCapCinco}{Entrega individual — Capítulo 5 de 7}
+\Indices
+
+% ------------------- Cuerpo -------------------
+\mainmatter
+\setcounter{chapter}{4}   % continúa la numeración del libro: capítulo 5
+\input{capitulos/cap05/contenido}
+
+% ------------------- Referencias -------------------
+\Referencias
+
+\end{document}

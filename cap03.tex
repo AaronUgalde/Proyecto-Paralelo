@@ -1,0 +1,32 @@
+% =====================================================================
+%  cap03.tex — ENTREGA INDIVIDUAL del capítulo 3
+%
+%  Compilar desde la RAÍZ del repositorio:
+%      make cap03          (o)   latexmk -pdf cap03.tex
+%
+%  Genera un PDF autocontenido con: portada, índice de contenido,
+%  índice de figuras, índice de tablas, el capítulo y sus referencias IEEE.
+%  NO edites el contenido aquí: vive en capitulos/cap03/contenido.tex
+% =====================================================================
+\documentclass[12pt, letterpaper, oneside, openany]{book}
+
+\input{config/metadatos}
+\input{config/preambulo}
+\input{config/portada}
+
+\begin{document}
+
+% ------------------- Material preliminar -------------------
+\frontmatter
+\Portada{\TituloCapTres}{Entrega individual — Capítulo 3 de 7}
+\Indices
+
+% ------------------- Cuerpo -------------------
+\mainmatter
+\setcounter{chapter}{2}   % continúa la numeración del libro: capítulo 3
+\input{capitulos/cap03/contenido}
+
+% ------------------- Referencias -------------------
+\Referencias
+
+\end{document}

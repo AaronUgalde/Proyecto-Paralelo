@@ -1,0 +1,95 @@
+% =====================================================================
+%  Capítulo 1 — contenido
+%
+%  Este archivo contiene ÚNICAMENTE el cuerpo del capítulo (sin preámbulo,
+%  sin \begin{document}). Lo consumen dos documentos:
+%     - cap01.tex   -> entrega individual (portada + índices + referencias)
+%     - libro.tex   -> libro completo unificado
+%  Por eso nunca debe llevar portada, índices ni \printbibliography.
+%
+%  Convenciones:
+%   * Figuras: guárdalas en capitulos/cap01/figuras/ con el prefijo cap01-
+%     y cítalas sólo por su nombre: \includegraphics{cap01-esquema.png}
+%   * Etiquetas: \label{fig:cap01:...}, \label{tab:cap01:...},
+%                \label{sec:cap01:...}, \label{lst:cap01:...}
+%   * Referencias: \cite{clave} usando las claves de bib/referencias.bib
+% =====================================================================
+
+\chapter{\TituloCapUno}
+\label{cap:01}
+
+\section{Introducción}
+\label{sec:cap01:introduccion}
+
+Escribe aquí la introducción del capítulo. Las citas se insertan con el comando
+\verb|\cite| y se renderizan en formato IEEE, por ejemplo \cite{grama:intro-parallel:2003}.
+También puedes citar varias fuentes a la vez
+\cite{pacheco:intro-parallel-prog:2011, foster:disenando:1995}.
+
+\section{Desarrollo}
+\label{sec:cap01:desarrollo}
+
+Texto del desarrollo. La taxonomía clásica de arquitecturas fue propuesta por
+Flynn \cite{flynn:taxonomia:1972}, mientras que los límites teóricos del
+paralelismo se discuten en \cite{amdahl:ley:1967} y \cite{gustafson:reevaluando:1988}.
+
+% --------------------- Ejemplo de figura ---------------------
+% Sustituye el \fbox por: \includegraphics[width=0.6\textwidth]{cap01-ejemplo.png}
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering\itshape
+        Marcador de posición: reemplázalo por\\
+        \texttt{\textbackslash includegraphics\{cap01-ejemplo.png\}}}}
+    \caption{Ejemplo de figura del capítulo 1. Todo lo que lleve \texttt{\textbackslash caption}
+             aparece automáticamente en el Índice de figuras.}
+    \label{fig:cap01:ejemplo}
+\end{figure}
+
+Como se aprecia en la Figura~\ref{fig:cap01:ejemplo}, las referencias cruzadas se
+hacen con \verb|\ref| sobre la etiqueta declarada en el entorno.
+
+% --------------------- Ejemplo de tabla ---------------------
+\begin{table}[H]
+    \centering
+    \caption{Ejemplo de tabla del capítulo 1. Todo lo que lleve \texttt{\textbackslash caption}
+             aparece automáticamente en el Índice de tablas.}
+    \label{tab:cap01:ejemplo}
+    \begin{tabular}{lrr}
+        \toprule
+        \textbf{Hilos} & \textbf{Tiempo (s)} & \textbf{Aceleración} \\
+        \midrule
+        1 & 12.40 & 1.00 \\
+        2 &  6.85 & 1.81 \\
+        4 &  3.72 & 3.33 \\
+        8 &  2.15 & 5.77 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La Tabla~\ref{tab:cap01:ejemplo} muestra el formato sugerido para reportar mediciones.
+
+% --------------------- Ejemplo de código ---------------------
+\begin{lstlisting}[style=C, caption={Ejemplo mínimo de una región paralela con OpenMP.},
+                   label={lst:cap01:ejemplo}]
+#include <stdio.h>
+#include <omp.h>
+
+int main(void) {
+    #pragma omp parallel
+    {
+        printf("Hola desde el hilo %d de %d\n",
+               omp_get_thread_num(), omp_get_num_threads());
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{nota}
+    Las cajas \texttt{nota} y \texttt{definicion} están definidas en
+    \texttt{config/preambulo.tex} y sirven para resaltar ideas clave.
+\end{nota}
+
+\section{Conclusiones del capítulo}
+\label{sec:cap01:conclusiones}
+
+Cierra aquí las ideas principales del capítulo.

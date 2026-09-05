@@ -1,0 +1,220 @@
+% =====================================================================
+%  preambulo.tex
+%  Preámbulo común a TODAS las entregas (capítulos sueltos y libro final).
+%  Se carga con \input{config/preambulo} desde la raíz del repositorio.
+%
+%  MOTOR: XeLaTeX (obligatorio). Es el que permite usar la fuente real
+%  Times New Roman del sistema. NO compilar con pdflatex.
+% =====================================================================
+
+% ---------- Tamaño base exacto: 11 puntos ----------
+% Dos precisiones importantes:
+%  1) La opción [11pt] de la clase da en realidad 10.95 pt. El paquete
+%     fontsize regenera todas las órdenes de tamaño con el valor exacto.
+%  2) El "punto" de TeX mide 1/72.27 de pulgada, pero el punto que usan
+%     Word y los visores de PDF (el que se verificará) mide 1/72 = 1 bp.
+%     Por eso todos los tamaños de este proyecto se declaran en "bp":
+%     así el PDF reporta 11.00, 12.00, 14.00 y 16.00 exactos.
+\usepackage[fontsize=11bp]{fontsize}
+
+% ---------- Fuentes ----------
+\usepackage{amsmath, amssymb}
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+
+% Times New Roman del sistema (macOS y Windows la traen).
+% Si no existe, se usa TeX Gyre Termes: clon libre métricamente idéntico,
+% así el documento compila igual en cualquier máquina sin cambiar de aspecto.
+\IfFontExistsTF{Times New Roman}{
+    \setmainfont{Times New Roman}
+    \newcommand{\FuenteTexto}{Times New Roman}
+}{
+    \setmainfont{texgyretermes}[
+        Extension      = .otf,
+        UprightFont    = *-regular,
+        BoldFont       = *-bold,
+        ItalicFont     = *-italic,
+        BoldItalicFont = *-bolditalic]
+    \newcommand{\FuenteTexto}{TeX Gyre Termes (clon métrico de Times New Roman)}
+}
+% Monoespaciada para el código
+\IfFontExistsTF{Courier New}{
+    % Sin Scale: así \texttt en línea mide exactamente los 11 bp del texto.
+    \setmonofont{Courier New}
+}{
+    \setmonofont{texgyrecursor}[
+        Extension      = .otf,
+        UprightFont    = *-regular,
+        BoldFont       = *-bold,
+        ItalicFont     = *-italic,
+        BoldItalicFont = *-bolditalic]
+}
+% Matemáticas en Times (Termes Math es la versión matemática de Times).
+% Se carga por nombre de archivo: en macOS fontconfig no indexa las fuentes
+% de TeX Live, así que buscarla por nombre comercial falla.
+\usepackage{unicode-math}
+\setmathfont{texgyretermes-math.otf}
+
+% ---------- Idioma ----------
+% es-lcroman: evita que babel componga los números romanos en versalitas.
+% Times New Roman no tiene versalitas reales y XeTeX las simularía
+% encogiendo la letra a ~8 pt, rompiendo el requisito de tamaños.
+\usepackage[spanish, es-tabla, es-noshorthands, es-lcroman]{babel}
+\usepackage{csquotes}
+
+% ---------- Página ----------
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{microtype}
+\linespread{1.15}
+\setlength{\parskip}{0.5em}
+
+% ---------- Utilidades ----------
+\usepackage{ifthen}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{siunitx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage[linesnumbered, ruled, vlined]{algorithm2e}
+\usepackage[nottoc, notbib]{tocbibind}   % LOF y LOT aparecen en el índice
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{listings}
+
+% Rutas donde LaTeX buscará imágenes (funciona igual compilando el libro
+% completo o un capítulo suelto, porque siempre se compila desde la raíz).
+\graphicspath{%
+    {img/}%
+    {capitulos/cap01/figuras/}%
+    {capitulos/cap02/figuras/}%
+    {capitulos/cap03/figuras/}%
+    {capitulos/cap04/figuras/}%
+    {capitulos/cap05/figuras/}%
+    {capitulos/cap06/figuras/}%
+    {capitulos/cap07/figuras/}%
+}
+
+% ---------- Colores institucionales ----------
+\definecolor{guindaIPN}{RGB}{110, 28, 52}
+\definecolor{azulESCOM}{RGB}{0, 81, 158}
+\definecolor{grisCodigo}{RGB}{245, 245, 245}
+\definecolor{verdeComent}{RGB}{0, 120, 60}
+\definecolor{moradoKey}{RGB}{120, 20, 120}
+
+% =====================================================================
+%  JERARQUÍA TIPOGRÁFICA REQUERIDA
+%     texto        11 pt
+%     capítulo     16 pt negritas
+%     sección      14 pt negritas
+%     subsección   12 pt negritas
+%     subsubsec.   12 pt negritas cursiva
+%  Los tamaños se fijan de forma absoluta con \fontsize{pt}{interlínea},
+%  no con \Large/\huge, para que sean exactamente los pedidos.
+% =====================================================================
+\newcommand{\TamCapitulo}{\fontsize{16bp}{19.2bp}\selectfont}
+\newcommand{\TamSeccion}{\fontsize{14bp}{16.8bp}\selectfont}
+\newcommand{\TamSubseccion}{\fontsize{12bp}{14.4bp}\selectfont}
+\newcommand{\TamTexto}{\fontsize{11bp}{13.2bp}\selectfont}
+
+\titleformat{\chapter}[hang]
+    {\normalfont\bfseries\TamCapitulo}{\chaptertitlename\ \thechapter.}{0.6em}{}
+\titlespacing*{\chapter}{0pt}{0pt}{24pt}
+
+\titleformat{\section}
+    {\normalfont\bfseries\TamSeccion}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{16pt}{8pt}
+
+\titleformat{\subsection}
+    {\normalfont\bfseries\TamSubseccion}{\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+
+\titleformat{\subsubsection}
+    {\normalfont\bfseries\itshape\TamSubseccion}{\thesubsubsection}{0.6em}{}
+\titlespacing*{\subsubsection}{0pt}{10pt}{5pt}
+
+% Encabezados de los índices (son \chapter*) al mismo tamaño de 16 pt
+\renewcommand{\contentsname}{Índice de contenido}
+
+% Pies de figura y tabla en el tamaño del texto
+\captionsetup{font=normalsize, labelfont=bf, labelsep=period, skip=8pt}
+
+% ---------- Encabezados y pies ----------
+\setlength{\headheight}{16pt}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\TamTexto\nouppercase{\leftmark}}
+\fancyhead[R]{\TamTexto\Materia}
+\fancyfoot[C]{\TamTexto\thepage}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\TamTexto\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% ---------- Código fuente (C, OpenMP, MPI, CUDA) ----------
+% El código va en monoespaciada a 10 pt: a 11 pt las líneas largas no caben
+% en el ancho de página. El texto redactado sí respeta los 11 pt.
+\lstset{
+    basicstyle=\ttfamily\fontsize{10bp}{12bp}\selectfont,
+    keywordstyle=\color{moradoKey}\bfseries,
+    commentstyle=\color{verdeComent}\itshape,
+    stringstyle=\color{azulESCOM},
+    backgroundcolor=\color{grisCodigo},
+    frame=single,
+    rulecolor=\color{gray!50},
+    numbers=left,
+    numberstyle=\fontsize{8bp}{9.6bp}\selectfont\color{gray},
+    numbersep=8pt,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=4,
+    captionpos=b,
+    columns=flexible,
+}
+% Lenguajes derivados
+\lstdefinelanguage{CUDA}[ANSI]{C}{
+    morekeywords={__global__, __device__, __host__, __shared__, __constant__,
+                  __syncthreads, blockIdx, blockDim, threadIdx, gridDim,
+                  cudaMalloc, cudaFree, cudaMemcpy, cudaDeviceSynchronize}
+}
+\lstdefinestyle{C}{language=C, morekeywords={\#pragma, omp, parallel, for, MPI_Init, MPI_Comm_rank, MPI_Comm_size, MPI_Send, MPI_Recv, MPI_Finalize}}
+% Nombre en español para los listados de código
+\renewcommand{\lstlistingname}{Código}
+
+% ---------- Cajas de nota ----------
+\newtcolorbox{nota}[1][Nota]{colback=azulESCOM!5, colframe=azulESCOM!70,
+    fonttitle=\bfseries, title=#1, boxrule=0.6pt, arc=2pt}
+\newtcolorbox{definicion}[1][Definición]{colback=guindaIPN!5, colframe=guindaIPN!70,
+    fonttitle=\bfseries, title=#1, boxrule=0.6pt, arc=2pt}
+
+% ---------- Bibliografía IEEE ----------
+\usepackage[backend=biber, style=ieee, sorting=none, maxbibnames=6, minbibnames=3]{biblatex}
+\addbibresource{bib/referencias.bib}
+\DefineBibliographyStrings{spanish}{references = {Referencias}}
+
+% ---------- Hipervínculos (cargar casi al final) ----------
+\usepackage[hidelinks, bookmarksnumbered]{hyperref}
+\usepackage{bookmark}
+
+% ---------- Macros de conveniencia ----------
+% Bibliografía de la entrega (aparece en el índice de contenido)
+\newcommand{\Referencias}{%
+    \cleardoublepage
+    \printbibliography[heading=bibintoc, title={Referencias}]%
+}
+
+% Figura estándar: \Figura{archivo}{ancho}{pie de figura}{etiqueta}
+\newcommand{\Figura}[4]{%
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=#2\textwidth]{#1}
+        \caption{#3}
+        \label{fig:#4}
+    \end{figure}%
+}

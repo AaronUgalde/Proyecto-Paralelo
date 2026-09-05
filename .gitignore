@@ -1,0 +1,30 @@
+# Salidas de compilación
+build/
+
+# Los PDF de entrega se regeneran con `make`; descomenta la línea siguiente
+# si prefieres NO versionarlos.
+# entregas/
+
+# Archivos intermedios de LaTeX que pudieran quedar fuera de build/
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.nav
+*.snm
+*.vrb
+*.xdv
+
+# Sistema operativo / editores
+.DS_Store
+.vscode/
+*.swp

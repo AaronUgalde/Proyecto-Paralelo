@@ -1,0 +1,32 @@
+% =====================================================================
+%  cap04.tex — ENTREGA INDIVIDUAL del capítulo 4
+%
+%  Compilar desde la RAÍZ del repositorio:
+%      make cap04          (o)   latexmk -pdf cap04.tex
+%
+%  Genera un PDF autocontenido con: portada, índice de contenido,
+%  índice de figuras, índice de tablas, el capítulo y sus referencias IEEE.
+%  NO edites el contenido aquí: vive en capitulos/cap04/contenido.tex
+% =====================================================================
+\documentclass[12pt, letterpaper, oneside, openany]{book}
+
+\input{config/metadatos}
+\input{config/preambulo}
+\input{config/portada}
+
+\begin{document}
+
+% ------------------- Material preliminar -------------------
+\frontmatter
+\Portada{\TituloCapCuatro}{Entrega individual — Capítulo 4 de 7}
+\Indices
+
+% ------------------- Cuerpo -------------------
+\mainmatter
+\setcounter{chapter}{3}   % continúa la numeración del libro: capítulo 4
+\input{capitulos/cap04/contenido}
+
+% ------------------- Referencias -------------------
+\Referencias
+
+\end{document}

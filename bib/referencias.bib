@@ -1,0 +1,126 @@
+% =====================================================================
+%  referencias.bib  —  Base bibliográfica ÚNICA de todo el libro.
+%
+%  Todos los capítulos citan de este archivo. biblatex/biber sólo imprime
+%  las entradas realmente citadas en el documento que se compila, así que
+%  cada capítulo suelto obtiene su propia lista de referencias IEEE y el
+%  libro final obtiene una lista unificada, sin duplicar archivos.
+%
+%  Convención de claves:  autor:tema:año   (p. ej. flynn:taxonomia:1972)
+%  Verifica cada entrada antes de citarla; añade las tuyas al final.
+% =====================================================================
+
+@book{grama:intro-parallel:2003,
+  author    = {Grama, Ananth and Gupta, Anshul and Karypis, George and Kumar, Vipin},
+  title     = {Introduction to Parallel Computing},
+  edition   = {2},
+  publisher = {Addison-Wesley},
+  address   = {Boston, MA, USA},
+  year      = {2003}
+}
+
+@book{pacheco:intro-parallel-prog:2011,
+  author    = {Pacheco, Peter S.},
+  title     = {An Introduction to Parallel Programming},
+  publisher = {Morgan Kaufmann},
+  address   = {Burlington, MA, USA},
+  year      = {2011}
+}
+
+@article{flynn:taxonomia:1972,
+  author  = {Flynn, Michael J.},
+  title   = {Some Computer Organizations and Their Effectiveness},
+  journal = {IEEE Transactions on Computers},
+  volume  = {C-21},
+  number  = {9},
+  pages   = {948--960},
+  year    = {1972}
+}
+
+@inproceedings{amdahl:ley:1967,
+  author    = {Amdahl, Gene M.},
+  title     = {Validity of the Single Processor Approach to Achieving Large Scale Computing Capabilities},
+  booktitle = {Proceedings of the AFIPS Spring Joint Computer Conference},
+  pages     = {483--485},
+  address   = {Atlantic City, NJ, USA},
+  year      = {1967}
+}
+
+@article{gustafson:reevaluando:1988,
+  author  = {Gustafson, John L.},
+  title   = {Reevaluating Amdahl's Law},
+  journal = {Communications of the ACM},
+  volume  = {31},
+  number  = {5},
+  pages   = {532--533},
+  year    = {1988}
+}
+
+@article{karp:midiendo-desempeno:1990,
+  author  = {Karp, Alan H. and Flatt, Horace P.},
+  title   = {Measuring Parallel Processor Performance},
+  journal = {Communications of the ACM},
+  volume  = {33},
+  number  = {5},
+  pages   = {539--543},
+  year    = {1990}
+}
+
+@book{hennessy:arquitectura:2019,
+  author    = {Hennessy, John L. and Patterson, David A.},
+  title     = {Computer Architecture: A Quantitative Approach},
+  edition   = {6},
+  publisher = {Morgan Kaufmann},
+  address   = {Cambridge, MA, USA},
+  year      = {2019}
+}
+
+@book{foster:disenando:1995,
+  author    = {Foster, Ian},
+  title     = {Designing and Building Parallel Programs},
+  publisher = {Addison-Wesley},
+  address   = {Reading, MA, USA},
+  year      = {1995}
+}
+
+@book{herlihy:multiprocesadores:2020,
+  author    = {Herlihy, Maurice and Shavit, Nir and Luchangco, Victor and Spear, Michael},
+  title     = {The Art of Multiprocessor Programming},
+  edition   = {2},
+  publisher = {Morgan Kaufmann},
+  address   = {Cambridge, MA, USA},
+  year      = {2020}
+}
+
+@book{kirk:gpu:2022,
+  author    = {Kirk, David B. and Hwu, Wen-mei W. and El Hajj, Izzat},
+  title     = {Programming Massively Parallel Processors: A Hands-on Approach},
+  edition   = {4},
+  publisher = {Morgan Kaufmann},
+  address   = {Cambridge, MA, USA},
+  year      = {2022}
+}
+
+@manual{openmp:api:2021,
+  author       = {{OpenMP Architecture Review Board}},
+  title        = {OpenMP Application Programming Interface, Version 5.2},
+  year         = {2021},
+  url          = {https://www.openmp.org/specifications/},
+  urldate      = {2026-09-03}
+}
+
+@manual{mpiforum:estandar:2021,
+  author       = {{Message Passing Interface Forum}},
+  title        = {MPI: A Message-Passing Interface Standard, Version 4.0},
+  year         = {2021},
+  url          = {https://www.mpi-forum.org/docs/},
+  urldate      = {2026-09-03}
+}
+
+@manual{nvidia:cuda-guide:2024,
+  author       = {{NVIDIA Corporation}},
+  title        = {CUDA C++ Programming Guide},
+  year         = {2024},
+  url          = {https://docs.nvidia.com/cuda/cuda-c-programming-guide/},
+  urldate      = {2026-09-03}
+}

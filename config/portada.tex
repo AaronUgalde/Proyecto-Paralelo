@@ -1,0 +1,103 @@
+% =====================================================================
+%  portada.tex
+%  Portada institucional IPN / ESCOM reutilizable.
+%
+%  Uso:  \Portada{<título>}{<subtítulo o leyenda, puede ir vacío>}
+%  Ejemplo:
+%      \Portada{\TituloCapUno}{Capítulo 1 de 7}
+%
+%  Tamaños conformes al requisito: título 16 pt, encabezados 14 pt,
+%  datos 12 pt, texto 11 pt. Times New Roman no incluye versalitas reales,
+%  por eso los rótulos institucionales van en mayúsculas en lugar de \scshape.
+% =====================================================================
+
+\newcommand{\Portada}[2]{%
+\hypersetup{pageanchor=false}% evita anclas hyperref duplicadas en la portada
+\begin{titlepage}
+    \centering
+    \thispagestyle{empty}
+
+    % --- Encabezado con logos ---
+    \begin{minipage}{0.22\textwidth}
+        \centering
+        \includegraphics[width=3cm, height=3cm, keepaspectratio]{logoipn.png}
+        \vspace{0.1cm}
+    \end{minipage}%
+    \begin{minipage}{0.56\textwidth}
+        \centering
+        {\TamSeccion \textcolor{guindaIPN}{\MakeUppercase{\Institucion}}\par}
+        \vspace{0.4cm}
+        {\TamSubseccion \textcolor{azulESCOM}{\MakeUppercase{\Escuela}}\par}
+    \end{minipage}%
+    \begin{minipage}{0.22\textwidth}
+        \centering
+        \includegraphics[width=3cm, height=3cm, keepaspectratio]{escomlogo.png}
+        \vspace{0.1cm}
+    \end{minipage}
+
+    \vfill
+
+    % --- Línea decorativa superior ---
+    \textcolor{guindaIPN}{\rule{\textwidth}{1.5pt}}
+    \vspace{0.5cm}
+
+    % --- Materia ---
+    {\TamSeccion \MakeUppercase{\Materia} \par}
+    \vspace{0.7cm}
+
+    % --- Título (16 pt, el tamaño mayor del documento) ---
+    {\TamCapitulo \bfseries #1 \par}
+
+    % --- Subtítulo / leyenda de entrega (opcional) ---
+    \ifthenelse{\equal{#2}{}}{}{%
+        \vspace{0.5cm}
+        {\TamSubseccion \itshape #2 \par}%
+    }
+    \vspace{0.7cm}
+
+    % --- Línea decorativa inferior ---
+    \textcolor{guindaIPN}{\rule{\textwidth}{1.5pt}}
+
+    \vfill
+
+    % --- Profesor ---
+    {\TamSubseccion \bfseries Profesor: \par}
+    \vspace{0.25cm}
+    {\TamSeccion \Profesor \par}
+
+    \vfill
+
+    % --- Equipo ---
+    {\TamSubseccion \bfseries Presentan: \par}
+    \vspace{0.3cm}
+    {\TamTexto
+        \begin{tabular}{c}
+            \Autores
+        \end{tabular}\par}
+
+    \ifthenelse{\equal{\Grupo}{}}{}{%
+        \vspace{0.4cm}
+        {\TamSubseccion \textbf{Grupo:} \Grupo \par}%
+    }
+
+    \vfill
+
+    % --- Fecha ---
+    {\TamSubseccion \Lugar, a \today \par}
+
+\end{titlepage}%
+\hypersetup{pageanchor=true}%
+}
+
+% ---------------------------------------------------------------------
+%  Bloque de índices obligatorio en cada entrega:
+%  índice de contenido + índice de figuras + índice de tablas.
+% ---------------------------------------------------------------------
+\newcommand{\Indices}{%
+    \tableofcontents
+    \cleardoublepage
+    \listoffigures
+    \cleardoublepage
+    \listoftables
+    \cleardoublepage
+}

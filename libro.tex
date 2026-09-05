@@ -1,0 +1,38 @@
+% =====================================================================
+%  libro.tex — LIBRO COMPLETO (entrega final)
+%
+%  Compilar desde la RAÍZ del repositorio:
+%      make libro      (o)   latexmk -pdf libro.tex
+%
+%  Reúne los 7 capítulos con UNA sola portada, UN índice de contenido,
+%  UN índice de figuras, UN índice de tablas y UNA lista de referencias
+%  IEEE unificada. Los capítulos son exactamente los mismos archivos que
+%  se entregan sueltos (capitulos/capNN/contenido.tex), no copias.
+% =====================================================================
+\documentclass[12pt, letterpaper, oneside, openany]{book}
+
+\input{config/metadatos}
+\input{config/preambulo}
+\input{config/portada}
+
+\begin{document}
+
+% ------------------- Material preliminar (unificado) -------------------
+\frontmatter
+\Portada{\TituloLibro}{\SubtituloLibro}
+\Indices
+
+% ------------------- Cuerpo: los 7 capítulos -------------------
+\mainmatter
+\input{capitulos/cap01/contenido}
+\input{capitulos/cap02/contenido}
+\input{capitulos/cap03/contenido}
+\input{capitulos/cap04/contenido}
+\input{capitulos/cap05/contenido}
+\input{capitulos/cap06/contenido}
+\input{capitulos/cap07/contenido}
+
+% ------------------- Referencias (unificadas) -------------------
+\Referencias
+
+\end{document}

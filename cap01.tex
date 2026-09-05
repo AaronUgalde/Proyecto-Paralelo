@@ -1,0 +1,32 @@
+% =====================================================================
+%  cap01.tex — ENTREGA INDIVIDUAL del capítulo 1
+%
+%  Compilar desde la RAÍZ del repositorio:
+%      make cap01          (o)   latexmk -pdf cap01.tex
+%
+%  Genera un PDF autocontenido con: portada, índice de contenido,
+%  índice de figuras, índice de tablas, el capítulo y sus referencias IEEE.
+%  NO edites el contenido aquí: vive en capitulos/cap01/contenido.tex
+% =====================================================================
+\documentclass[12pt, letterpaper, oneside, openany]{book}
+
+\input{config/metadatos}
+\input{config/preambulo}
+\input{config/portada}
+
+\begin{document}
+
+% ------------------- Material preliminar -------------------
+\frontmatter
+\Portada{\TituloCapUno}{Entrega individual — Capítulo 1 de 7}
+\Indices
+
+% ------------------- Cuerpo -------------------
+\mainmatter
+\setcounter{chapter}{0}   % continúa la numeración del libro: capítulo 1
+\input{capitulos/cap01/contenido}
+
+% ------------------- Referencias -------------------
+\Referencias
+
+\end{document}
