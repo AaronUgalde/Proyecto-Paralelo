@@ -13,83 +13,238 @@
 %   * Etiquetas: \label{fig:cap01:...}, \label{tab:cap01:...},
 %                \label{sec:cap01:...}, \label{lst:cap01:...}
 %   * Referencias: \cite{clave} usando las claves de bib/referencias.bib
+%     (agrégalas ahí en formato IEEE; \Referencias las imprime
+%     automáticamente al final de la entrega, no hace falta más aquí)
+%
+%  IMPORTANTE — pendiente de ajuste FUERA de este archivo:
+%   * \TituloCapUno en config/metadatos.tex dice actualmente
+%     "Introducción al cómputo paralelo". Si este capítulo es la
+%     práctica de "La Serie de Fourier", cambien esa línea para que la
+%     portada y los encabezados muestren el título correcto.
+%   * bib/referencias.bib sólo tiene fuentes de cómputo paralelo;
+%     agreguen ahí las referencias reales sobre la Serie de Fourier.
+%
+%  Reparto sugerido (uno por integrante; ajusten si acuerdan otra cosa):
+%     - Said Carbot Cruz Trejo
+%     - Magaly López Castro
+%     - Lino Ehecatl Romero Rosales
+%     - Aarón Ugalde Téllez
 % =====================================================================
 
 \chapter{\TituloCapUno}
 \label{cap:01}
 
-\section{Introducción}
-\label{sec:cap01:introduccion}
+% =====================================================================
+% 1.1 Marco teórico
+% =====================================================================
+\section{Marco teórico}
+\label{sec:cap01:marco-teorico}
 
-Escribe aquí la introducción del capítulo. Las citas se insertan con el comando
-\verb|\cite| y se renderizan en formato IEEE, por ejemplo \cite{grama:intro-parallel:2003}.
-También puedes citar varias fuentes a la vez
-\cite{pacheco:intro-parallel-prog:2011, foster:disenando:1995}.
+\subsection{Contexto de la Serie de Fourier}
+\label{sec:cap01:marco-teorico:contexto}
 
-\section{Desarrollo}
-\label{sec:cap01:desarrollo}
+La serie de Fourier fue introducida por el matemático y físico francés Jean-Baptiste Joseph Fourier en 1822, en su obra fundamental \textit{Théorie analytique de la chaleur} (Teoría analítica del calor) \cite{fourier:teoria-calor:1822}. El problema central que motivó a Fourier no era puramente matemático, sino físico: buscaba modelar cómo el calor fluye y se distribuye a lo largo del tiempo en un material sólido, lo que lo llevó a formular la famosa ecuación del calor \cite{kreyszig:matematicas-avanzadas:2011}.
 
-Texto del desarrollo. La taxonomía clásica de arquitecturas fue propuesta por
-Flynn \cite{flynn:taxonomia:1972}, mientras que los límites teóricos del
-paralelismo se discuten en \cite{amdahl:ley:1967} y \cite{gustafson:reevaluando:1988}.
+Para resolver esta ecuación diferencial, Fourier propuso una idea que rompió con los paradigmas de su época. Afirmó que cualquier función periódica, incluso aquellas que presentaban saltos o discontinuidades, podía ser representada analíticamente como una suma infinita de funciones trigonométricas simples, específicamente senos y cosenos \cite{fourier:teoria-calor:1822}. Hasta ese momento, las herramientas convencionales como las series de Taylor estaban estrictamente limitadas a funciones continuas y derivables \cite{oppenheim:senales-sistemas:1997}.
 
-% --------------------- Ejemplo de figura ---------------------
-% Sustituye el \fbox por: \includegraphics[width=0.6\textwidth]{cap01-ejemplo.png}
-\begin{figure}[H]
-    \centering
-    \fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering\itshape
-        Marcador de posición: reemplázalo por\\
-        \texttt{\textbackslash includegraphics\{cap01-ejemplo.png\}}}}
-    \caption{Ejemplo de figura del capítulo 1. Todo lo que lleve \texttt{\textbackslash caption}
-             aparece automáticamente en el Índice de figuras.}
-    \label{fig:cap01:ejemplo}
-\end{figure}
+Esta audaz afirmación generó un fuerte debate en la comunidad científica. Matemáticos consagrados de la Academia Francesa, como Joseph-Louis Lagrange y Pierre-Simon Laplace, rechazaron inicialmente su trabajo. Ellos argumentaban que una suma de funciones continuas y suaves (como los senos) jamás podría modelar esquinas, picos o discontinuidades abruptas en una gráfica \cite{kreyszig:matematicas-avanzadas:2011}. Aunque Fourier no pudo ofrecer una demostración matemática rigurosa en ese momento para calmar a sus críticos, su intuición era correcta y los resultados prácticos eran innegables.
 
-Como se aprecia en la Figura~\ref{fig:cap01:ejemplo}, las referencias cruzadas se
-hacen con \verb|\ref| sobre la etiqueta declarada en el entorno.
+No fue hasta 1829 cuando el matemático alemán Peter Gustav Lejeune Dirichlet logró establecer las condiciones formales (conocidas hoy como las condiciones de Dirichlet) que garantizan la convergencia de estas series \cite{oppenheim:senales-sistemas:1997}. En retrospectiva, el trabajo de Fourier no solo resolvió un problema de termodinámica, sino que obligó a los matemáticos del siglo XIX a redefinir conceptos fundamentales, como el significado mismo de lo que es una "función" o una "integral", sentando las bases del análisis matemático moderno.
 
-% --------------------- Ejemplo de tabla ---------------------
-\begin{table}[H]
-    \centering
-    \caption{Ejemplo de tabla del capítulo 1. Todo lo que lleve \texttt{\textbackslash caption}
-             aparece automáticamente en el Índice de tablas.}
-    \label{tab:cap01:ejemplo}
-    \begin{tabular}{lrr}
-        \toprule
-        \textbf{Hilos} & \textbf{Tiempo (s)} & \textbf{Aceleración} \\
-        \midrule
-        1 & 12.40 & 1.00 \\
-        2 &  6.85 & 1.81 \\
-        4 &  3.72 & 3.33 \\
-        8 &  2.15 & 5.77 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+\subsection{Aplicaciones en la ciencia}
+\label{sec:cap01:marco-teorico:ciencia}
 
-La Tabla~\ref{tab:cap01:ejemplo} muestra el formato sugerido para reportar mediciones.
+\subsubsection{Imagenología médica: resonancia magnética}
 
-% --------------------- Ejemplo de código ---------------------
-\begin{lstlisting}[style=C, caption={Ejemplo mínimo de una región paralela con OpenMP.},
-                   label={lst:cap01:ejemplo}]
-#include <stdio.h>
-#include <omp.h>
+En la resonancia magnética (RM), los datos crudos que capta el escáner no forman directamente una imagen: se almacenan en una matriz conocida como ``espacio-k'', que corresponde matemáticamente al dominio de frecuencias de la imagen final \cite{sciencedirect:espacio-k,arxiv:mri-reconstruccion}. Solo al aplicar una transformada de Fourier bidimensional a esos datos se reconstruye la imagen anatómica que observa el radiólogo \cite{sciencedirect:espacio-k}. El centro del espacio-k concentra la información sobre el contraste y la forma general de la imagen, mientras que sus regiones periféricas contienen los detalles finos y los bordes de las estructuras \cite{upv:espacio-k-completo}. Comprender esta relación permite a los técnicos optimizar la resolución espacial, la resolución temporal y la calidad final de las imágenes clínicas \cite{sciencedirect:espacio-k}.
 
-int main(void) {
-    #pragma omp parallel
-    {
-        printf("Hola desde el hilo %d de %d\n",
-               omp_get_thread_num(), omp_get_num_threads());
-    }
-    return 0;
-}
-\end{lstlisting}
+\subsubsection{Espectroscopía química y análisis de materiales}
 
-\begin{nota}
-    Las cajas \texttt{nota} y \texttt{definicion} están definidas en
-    \texttt{config/preambulo.tex} y sirven para resaltar ideas clave.
-\end{nota}
+La espectroscopía infrarroja por transformada de Fourier (FTIR) es una de las técnicas analíticas más usadas en química, farmacia, ciencia de materiales y control de calidad industrial. En lugar de analizar una sola longitud de onda a la vez, el instrumento hace pasar un haz con múltiples frecuencias simultáneas a través de un interferómetro de Michelson y de la muestra; luego, un procesamiento de Fourier convierte esos datos brutos en el espectro de absorción o emisión característico del material \cite{wikipedia:ftir-en,wikipedia:ftir-es}. Esta técnica permite identificar grupos funcionales y familias químicas, detectar impurezas en fármacos o alimentos y diferenciar materiales de composición similar, como distintos tipos de plásticos \cite{udg:ftir-cucei,tecnosoluciones:ftir-industria}.
 
+\subsubsection{Acústica y música}
+
+Todo sonido periódico —la nota de un instrumento musical, la voz humana— puede describirse como la suma de una frecuencia fundamental y sus armónicos, es decir, como una serie de Fourier. Esta descomposición revela el espectro armónico del sonido, que es el principal responsable del timbre distintivo de cada instrumento o voz \cite{hyperphysics:fourier-audio,sebha:fourier-tonos-musicales}. La síntesis aditiva, una técnica habitual en producción musical y diseño de sonido, aplica el principio inverso: construye timbres complejos combinando ondas sinusoidales simples con las amplitudes y fases adecuadas \cite{researchgate:tonos-musicales-fourier,jei:fourier-musica}. Este marco también ha influido en el desarrollo de la música por computadora, desde la imitación de instrumentos hasta la generación de nuevas texturas sonoras \cite{crhy:fourier-musica-computadora}.
+
+\subsubsection{Sismología e ingeniería estructural}
+
+En ingeniería civil y sismología, la transformada de Fourier permite extraer las frecuencias naturales de vibración de un edificio, un puente o el propio terreno a partir de registros de aceleración. Analizar el espectro de Fourier de un acelerograma sísmico revela las frecuencias dominantes de un movimiento de tierra y los modos de vibración resonantes de una estructura \cite{arxiv:sismografo-fourier,sciencedirect:espectro-amplitud-fourier}. Esta información es clave para evaluar el riesgo sísmico y para el monitoreo continuo de la salud estructural de edificaciones, donde variantes como la Transformada de Fourier de Tiempo Corto (STFT) permiten detectar cambios repentinos —como la propagación de una grieta— en la respuesta dinámica de una estructura \cite{pmc:shm-vibraciones}.
+
+\subsubsection{Mecánica cuántica}
+
+En la física cuántica, la transformada de Fourier no es solo una herramienta de cálculo: describe una relación física fundamental. La función de onda de una partícula en el espacio de posiciones y su función de onda en el espacio de momentos están relacionadas exactamente por una transformada de Fourier \cite{libretexts:qm-fourier-113,researchgate:fourier-mecanica-cuantica}. Esta relación matemática es la razón formal detrás del principio de incertidumbre de Heisenberg: cuanto más localizada está una partícula en el espacio de posición, más deslocalizada resulta su distribución de momento, y viceversa \cite{libretexts:qm-fourier-117,researchgate:fourier-mecanica-cuantica}.
+
+\subsubsection{Astrofísica: detección de ondas gravitacionales}
+
+En la astronomía observacional moderna, el análisis de Fourier es indispensable para extraer señales físicas débiles de datos ruidosos. Un ejemplo destacado es la detección de ondas gravitacionales por observatorios como LIGO, donde las señales registradas por los interferómetros se analizan en el dominio de la frecuencia mediante transformadas de Fourier para identificar y caracterizar el paso de una onda gravitacional a través del detector \cite{arxiv:ligo-fourier-memoria}.
+
+\subsection{Aplicaciones en la tecnología}
+\label{sec:cap01:marco-teorico:tecnologia}
+
+\subsubsection{Procesamiento de señales y telecomunicaciones}
+
+La aplicación más extendida de las series y transformadas de Fourier está en el procesamiento digital de señales. Al convertir una señal del dominio del tiempo al dominio de la frecuencia, es posible filtrar ruido, modular señales, comprimirlas y adaptarlas a las condiciones del canal de transmisión \cite{rjsaonline:fourier-dsp,howard:fourier-comunicacion:2024}.
+
+En telecomunicaciones, la transformada de Fourier es la base de la multiplexación, la técnica que permite combinar varias señales en un solo medio de transmisión y luego separarlas correctamente en el destino mediante la transformada inversa \cite{howard:fourier-comunicacion:2024}. La llegada del algoritmo de la Transformada Rápida de Fourier (FFT), publicado por Cooley y Tukey en 1965, redujo drásticamente el costo computacional de este análisis y permitió su uso masivo en sistemas de comunicación modernos, radares y equipos de prueba electrónica \cite{ieee:fft-implementacion,acm:fft-algoritmos}. El propio IEEE reconoce esta relevancia a través del ``IEEE Fourier Award for Signal Processing'', otorgado a contribuciones destacadas en el campo del procesamiento de señales \cite{wikipedia:ieee-fourier-award}.
+
+\subsubsection{Compresión y procesamiento de imágenes digitales}
+
+El formato de compresión de imágenes JPEG, uno de los más usados en el mundo, se apoya en una variante de las series de Fourier llamada Transformada Discreta del Coseno (DCT). El algoritmo divide la imagen en bloques de 8$\times$8 píxeles y expresa el contenido de cada bloque como una suma de funciones coseno de distintas frecuencias \cite{bryan:jpeg-matematicas,arxiv:dct-jpeg}. Las frecuencias bajas concentran la información sobre la forma general de la imagen, mientras que las frecuencias altas describen los detalles finos y los bordes; al eliminar o simplificar estas últimas mediante cuantización, es posible reducir el tamaño del archivo con una pérdida de calidad casi imperceptible para el ojo humano \cite{arxiv:dct-jpeg}. La misma familia de transformadas está detrás de otros estándares multimedia ampliamente usados, como MPEG y las normas de compresión de video de la serie H \cite{sciencedirect:dct-overview}.
+
+Al revisar estas ocho áreas —procesamiento de señales, compresión de imágenes, imagenología médica, espectroscopía, acústica, sismología, mecánica cuántica y astrofísica— resulta evidente que las series y transformadas de Fourier no son un recurso matemático más entre muchos, sino un lenguaje común que atraviesa de manera transversal a la ciencia y la tecnología contemporáneas. Su idea central —que un fenómeno complejo puede descomponerse en componentes de frecuencia simples, analizarse por separado y luego reconstruirse sin pérdida de información esencial— resulta tan útil para comprimir una fotografía como para reconstruir una imagen médica, afinar un instrumento musical, evaluar el riesgo sísmico de un edificio, describir el comportamiento cuántico de una partícula subatómica o detectar el paso de una onda gravitacional a miles de millones de años luz de distancia.
+
+Lo que hace especialmente notable a esta herramienta es su capacidad de unificación. En telecomunicaciones, el análisis de frecuencias permite que múltiples señales compartan un mismo canal físico sin interferirse, sosteniendo la infraestructura de internet, la telefonía móvil y la transmisión de radio y televisión. En el procesamiento de imágenes, el mismo principio matemático que Fourier usó para modelar la difusión del calor en una lámina metálica es hoy la base del formato JPEG y de los estándares de video más usados del mundo, permitiendo que miles de millones de fotografías y videos se almacenen y transmitan de forma eficiente cada día. En medicina, la reconstrucción por Fourier del espacio-k convierte señales de radiofrecuencia en imágenes anatómicas de altísima resolución sin necesidad de radiación ionizante, siendo hoy una herramienta diagnóstica indispensable. En química analítica, la espectroscopía FTIR aplica el mismo principio para identificar sustancias y detectar impurezas con una precisión que sería inalcanzable con métodos dispersivos tradicionales.
+
+En la física fundamental, el papel de Fourier es aún más profundo: no se trata solo de una técnica de cálculo conveniente, sino de una relación que refleja la naturaleza misma de la realidad cuántica, donde posición y momento son variables conjugadas ligadas precisamente por una transformada de Fourier, lo que explica formalmente el principio de incertidumbre de Heisenberg. Y en la frontera de la astrofísica observacional, el análisis espectral permite a instrumentos como LIGO extraer señales gravitacionales extraordinariamente débiles del ruido de fondo, abriendo una ventana completamente nueva para observar el universo.
+
+Doscientos años después de que Joseph Fourier formulara su método para resolver un problema de conducción térmica, la vigencia de su idea en campos que él jamás podría haber imaginado —la resonancia magnética, las telecomunicaciones digitales, la detección de ondas gravitacionales— es quizás la mejor demostración de que las matemáticas fundamentales, cuando capturan una estructura verdaderamente universal de la naturaleza, trascienden por completo el problema original que las inspiró. Las series de Fourier no solo resolvieron una ecuación diferencial del siglo XIX: proporcionaron una manera nueva de pensar cualquier fenómeno que varíe en el tiempo o en el espacio, y esa forma de pensar sigue, hoy, en el centro mismo de la innovación científica y tecnológica.
+
+\subsection{Aplicaciones en la ingeniería}
+\label{sec:cap01:marco-teorico:ingenieria}
+
+El análisis de Fourier representa uno de los pilares matemáticos más fundamentales en la ingeniería moderna, actuando como el puente principal entre el dominio del tiempo y el dominio de la frecuencia \cite{oppenheim:dsp:2009}. Su aplicación se extiende a prácticamente todas las ramas de la ingeniería aplicada, permitiendo descomponer fenómenos físicos complejos en sumas de ondas senoidales y cosenoidales más simples de analizar.
+
+Particularmente en el procesamiento digital de señales, las series y transformadas de Fourier son herramientas indispensables \cite{mitra:dsp:2011}. Los ingenieros utilizan estas fórmulas para diseñar filtros digitales que limpian el ruido de las transmisiones, analizar la respuesta en frecuencia de sistemas de control, y comprimir datos de audio y video. Al convertir una señal discreta a su espectro de frecuencias mediante operaciones matriciales complejas, es posible identificar y aislar componentes no deseados antes de reconstruir la señal original \cite{mitra:dsp:2011}.
+
+Además, en áreas como la ingeniería mecánica y civil, el análisis de Fourier es vital para el estudio de vibraciones mecánicas \cite{rao:vibraciones:2016}. Permite predecir cómo responderán las estructuras (como puentes o motores) a fuerzas externas periódicas, identificando frecuencias de resonancia críticas que podrían causar fallas catastróficas. De igual manera, en la ingeniería de telecomunicaciones, es la base matemática para modular señales portadoras, calcular el ancho de banda necesario para un canal de transmisión y optimizar el flujo de información a través de redes inalámbricas \cite{oppenheim:dsp:2009}.
+
+\subsection{Aplicaciones en la inteligencia artificial}
+\label{sec:cap01:marco-teorico:ia}
+
+En la intersección del análisis matemático y la inteligencia artificial, las series de Fourier están impulsando el desarrollo de modelos de aprendizaje más rápidos y eficientes. Desde el punto de vista del hardware y la aceleración física, la computación fotónica está utilizando luz láser a través de cristales de silicio para calcular transformadas de Fourier de manera instantánea \cite{zhang:photonic-fourier:2023}. En lugar de depender de interruptores eléctricos tradicionales, este método aprovecha las propiedades de las ondas de luz, lo cual resulta extremadamente útil en inteligencia artificial para procesar imágenes masivas. Esto permite reducir drásticamente la carga computacional de operaciones densas, bajando su complejidad de un nivel $\mathcal{O}(N^{4})$ a uno mucho más manejable de $\mathcal{O}(N^{2})$.
+
+Desde la perspectiva algorítmica, el análisis de Fourier se ha integrado profundamente en paradigmas avanzados de la inteligencia artificial, como el aprendizaje por refuerzo \cite{konidaris:fourier-basis-rl:2011}. En entornos donde un agente debe tomar decisiones en espacios de estado continuos y altamente dimensionales, las bases de Fourier se utilizan para aproximar funciones de valor con gran precisión \cite{konidaris:fourier-basis-rl:2011}. Al representar el entorno a través de sus componentes de frecuencia, los agentes pueden generalizar sus experiencias pasadas de forma más eficiente, acelerando la convergencia hacia políticas óptimas.
+
+Asimismo, en el campo de la optimización basada en inteligencia de enjambres, el análisis espectral de Fourier permite a los investigadores evaluar la dinámica poblacional de los algoritmos \cite{clerc:pso-convergencia:2002}. Al tratar las trayectorias de búsqueda de los agentes como señales en el tiempo, las series de Fourier ayudan a entender el equilibrio entre la exploración de nuevas soluciones y la explotación de las mejores áreas encontradas, permitiendo ajustar los parámetros matemáticos para evitar mínimos locales \cite{clerc:pso-convergencia:2002}.
+
+\subsection{Aplicaciones en el cómputo paralelo}
+\label{sec:cap01:marco-teorico:computo-paralelo}
+
+Usar series de Fourier en el cómputo paralelo es un tema muy importante hoy en día en la ingeniería de software. Para entender cómo las computadoras procesan grandes cantidades de datos usando estas matemáticas, sirve mucho revisar de dónde viene esta tecnología, qué estamos haciendo ahora y qué se espera para el futuro. Este recorrido muestra cómo han evolucionado las máquinas para hacer cálculos trigonométricos mucho más rápido.
+
+\subsubsection{Pasado}
+
+Los fundamentos teóricos pueden ser rastreados hasta 1805 con Carl Friedrich Gauss, cuya intención era calcular las órbitas y posiciones de cuerpos celestes como los asteroides Pallas y Juno. El método que ideó consistía en dividir los datos a la mitad repetidamente para evitar repetir multiplicaciones trigonométricas innecesarias. Sin embargo, llevar estas ideas a las computadoras electrónicas modernas no pasó sino hasta 1965, gracias a los trabajos de James Cooley y John Tukey. El algoritmo de ambos surgió a petición del gobierno de Estados Unidos, que necesitaba analizar vibraciones en la tierra para detectar pruebas de bombas atómicas de otros países. Como las señales de los sismos se registran en función del tiempo, era necesario pasarlas a frecuencias; con esto, lograron reducir la cantidad de operaciones matemáticas de un nivel muy pesado ($\mathcal{O}(N^2)$) a uno mucho más eficiente ($\mathcal{O}(N \log N)$), funcionando mediante divisiones de información y guardando resultados temporales en la memoria para no recalcular todo desde cero \cite{wikipedia:cooley-tukey-fft}.
+
+Cuando se empezaron a usar redes de computadoras (clústeres) para procesar estos datos, el problema principal dejó de ser la matemática y pasó a ser el tráfico de información entre las máquinas. Para procesar matrices gigantes de datos en tres dimensiones, la técnica tradicional consistía en cortar el cubo de datos en rebanadas planas y mandarle una parte a cada servidor. Para que las computadoras se pusieran de acuerdo, usaban un comando llamado \texttt{MPI\_Alltoall}. El problema ocurre cuando manejas millones de puntos: al cortar la matriz en una sola dirección, el comando inunda los cables de la red con una cantidad exagerada de mensajes, saturando los puertos de red y congelando el sistema. Por ejemplo, en simulaciones de fluidos con una cuadrícula de $N \times N \times N$, si cortabas la matriz en 512 partes, el software ya no te dejaba usar más de 512 procesadores al mismo tiempo, frenando por completo las investigaciones en los laboratorios \cite{pippig:pfft:2012}.
+
+\subsubsection{Presente}
+
+Para solucionar este problema de los límites en las redes, la industria empezó a usar tarjetas gráficas (GPUs), que tienen miles de núcleos de procesamiento. En lugar de hacer cortes en una sola dirección, los programadores cambiaron a una técnica llamada división en ``lápices'', la cual corta la matriz tridimensional en dos direcciones formando cilindros delgados de datos. Esto permite usar miles de computadoras a la vez sin que la red colapse en simulaciones de turbulencia de aire con millones de puntos. Para facilitarle la vida a los programadores, se crearon bibliotecas especializadas como heFFTe, la cual ayuda a resolver estos cálculos en supercomputadoras que buscan alcanzar la ``exaescala'' (un trillón de operaciones por segundo) reorganizando la memoria de la computadora para que las GPUs lean los datos de forma continua. Además, se usan comandos de red asíncronos para enviar datos mientras los procesadores siguen calculando, aunque el límite actual sigue siendo el tiempo que toma mover terabytes de información a través de los cables de fibra óptica y los conmutadores del centro de datos \cite{tomov:heffte:2020}.
+
+\subsubsection{Futuro}
+
+Mirando hacia los próximos diez años, los laboratorios de investigación están proponiendo dejar atrás los electrones y los cables de cobre tradicionales para usar luz láser (computación fotónica). En lugar de transistores eléctricos, los nuevos diseños envían pulsos de luz a través de guías hechas en cristales de silicio, donde las ondas chocan y se combinan entre sí. Gracias a este fenómeno físico, la luz realiza la transformada de Fourier de manera instantánea mientras viaja por el aire dentro del cristal, sin encender ni apagar interruptores eléctricos, algo muy útil en inteligencia artificial para procesar imágenes rápidamente a centímetros de distancia y bajar el costo de las operaciones matemáticas de un nivel pesado ($\mathcal{O}(N^4)$) a uno mucho más rápido ($\mathcal{O}(N^2)$) \cite{zhang:photonic-fourier:2023}.
+
+Otra tecnología que viene fuerte son los chips gigantes a escala de oblea. Empresas como Cerebras fabrican placas de silicio completas del tamaño de un plato de comida sin cortar los chips en pedazos pequeños, lo que permite poner la memoria a una distancia microscópica de los procesadores. En estas máquinas, transformar cubos gigantes de datos toma solo fracciones de milisegundo porque los mensajes viajan por pistas internas de metal dentro del mismo plato de silicio en lugar de salir a una red externa. En resumen, tanto la luz como los chips gigantes prometen eliminar los retrasos causados por los cables de red, haciendo que el procesamiento de estas operaciones dependa directamente de las nuevas propiedades físicas de los materiales \cite{nowak:wafer-scale-fft:2022}.
+
+% =====================================================================
+% 1.2 Soluciones de la Serie de Fourier de las funciones propuestas
+% =====================================================================
+\section{Soluciones de la Serie de Fourier de las funciones propuestas}
+\label{sec:cap01:soluciones}
+
+% Instrucciones para el equipo:
+%  1) Resuelvan a mano, en hoja blanca, la Serie de Fourier de su función.
+%  2) Digitalicen la hoja (escáner o foto nítida, con buena iluminación).
+%  3) Guarden la imagen en capitulos/cap01/figuras/ con el prefijo cap01-
+%     (ej. cap01-solucion-said.png) y sustituyan el \fbox de abajo por
+%     \includegraphics[width=0.8\textwidth]{cap01-solucion-said.png}
+%  4) La caligrafía debe ser legible.
+
+\subsection{Función propuesta por Said Carbot Cruz Trejo}
+\label{sec:cap01:soluciones:said}
+
+\includepdf[pages=-, scale=0.8]{capitulos/cap01/figuras/cap01-solucion-said.pdf}
+
+\subsection{Función propuesta por Magaly López Castro}
+\label{sec:cap01:soluciones:magaly}
+
+\includepdf[pages=-, scale=0.8]{capitulos/cap01/figuras/cap01-solucion-magaly.pdf}
+
+\subsection{Función propuesta por Lino Ehecatl Romero Rosales}
+\label{sec:cap01:soluciones:lino}
+
+\includepdf[pages=-, scale=0.8]{capitulos/cap01/figuras/cap01-solucion-lino.pdf}
+
+\subsection{Función propuesta por Aarón Ugalde Téllez}
+\label{sec:cap01:soluciones:aaron}
+
+
+\includepdf[pages=-, scale=0.8]{capitulos/cap01/figuras/cap01-solucion-aaron.pdf}
+
+% =====================================================================
+% 1.3 Conclusiones del capítulo
+% =====================================================================
 \section{Conclusiones del capítulo}
 \label{sec:cap01:conclusiones}
 
-Cierra aquí las ideas principales del capítulo.
+% Una página por integrante. Cada quien debe hablar de:
+%  - Su experiencia al resolver la Serie de Fourier de una función algebraica
+%  - El contexto del análisis de Fourier
+%  - Las aplicaciones del análisis de Fourier
+% El \clearpage al final de cada subsección obliga a que la siguiente
+% conclusión empiece en página nueva.
+
+\subsection{Conclusión — Said Carbot Cruz Trejo}
+\label{sec:cap01:conclusiones:said}
+
+Las series de Fourier siempre me han parecido un dolor de cabeza. De esas cosas donde si me equivoco tantito al principio, todo lo demás ya no sirve. A mí me las enseñó el profesor Toala. Sus materias han sido, por mucho, de las que más me han costado en ESCOM, al punto de pensar más de una vez si de verdad quería seguir con ellas. Pero, al mismo tiempo, siento que aprendí bastante bien a resolver una serie de Fourier para prácticamente cualquier función.
+
+La cosa es la práctica y la verdad es que estoy oxidado. Cuando menos lo importante es que sé qué trucos usar ya y qué representan.
+
+El problema para mí estaba en el método tradicional de integración por partes. Había ejercicios en los que parecía que nunca terminaría, integraciones una tras otra, signos que se cruzaban y despejes que terminaban siendo un desastre.
+
+Por eso empecé a usar el método tabular. Cuando las funciones lo permiten, para mí resulta muchísimo más sencillo. En lugar de hacer cada integración por partes por separado.
+
+También aprendí algunos trucos que terminaban siendo muy útiles en ejercicios y exámenes. Por ejemplo, cuando aparecía un coseno evaluado en $\pi$, podía usar directamente que $\cos(\pi) = (-1)^n$, en lugar de dejar toda la expresión llena de términos. Algo parecido pasaba cuando identificaba desde el principio si una función era par o impar. En esos casos podía saber que alguno de los coeficientes $a_n$ o $b_n$ era cero y evitarme una cantidad de cuentas que realmente no necesitaba hacer. Y cuando me pedían obtener los coeficientes en general, podía trabajar directamente con la fórmula en función de $n$, en lugar de calcularlos uno por uno.
+
+Ya después de todo esto, empecé a ver que las series y transformadas de Fourier no eran solamente un tema más de matemáticas que tenía que resolver para una materia. Vi que pasar una señal del dominio del tiempo al dominio de la frecuencia se usa en muchas de las áreas que me interesan, y ahí fue cuando empezó a hacerme más sentido fuera del salón de clases.
+
+En mi caso, esto lo pude relacionar directamente con lo que he estado haciendo en computación cuántica y simulación molecular con Qiskit. Ahí aparece la Transformada Cuántica de Fourier, o QFT. La idea cambia bastante porque ya no estoy trabajando simplemente con una señal clásica.
+
+La QFT me permite trabajar con las fases y amplitudes del estado cuántico y es una parte importante de varios algoritmos cuánticos relacionados con la estimación de fase y problemas de eigenvalores y eigenvectores. Al principio la conexión con las series de Fourier me parecía bastante abstracta, pero después de haber trabajado con ellas entendí mejor de dónde venía la idea.
+
+Y es que en IA, en procesamiento de imágenes por ejemplo, puedo pasar una matriz de píxeles al dominio de la frecuencia y trabajar con las propiedades de la señal desde otra perspectiva. Esto puede utilizarse para hacer más eficientes determinadas operaciones, como las convoluciones, y es una de las razones por las que las transformadas de Fourier siguen apareciendo en áreas que a primera vista, parecen bastante alejadas de las matemáticas que estaba viendo en clase.
+
+Al final, lo que empezó para mí como una forma de sobrevivir a los ejercicios de series de Fourier terminó teniendo bastante más sentido cuando lo relacioné con lo que ya estaba haciendo en computación cuántica e IA.
+
+No fue solamente aprender a resolver integrales de una forma más rápida; fue empezar a reconocer la misma idea matemática apareciendo en problemas completamente distintos.
+
+\clearpage
+
+\subsection{Conclusión — Magaly López Castro}
+\label{sec:cap01:conclusiones:magaly}
+
+Para mí, las series de Fourier siempre tuvieron esa vibra de ser un tema donde un signo menos perdido te arruina horas de trabajo. Estando en ESCOM, la carga matemática a veces abruma, y al estar tan acostumbrada a pensar en términos de algoritmos y programación competitiva, hacer toda la ``talacha'' manual de integrales y despejes me resultaba bastante frustrante al principio (y, siendo sincera, todavía lo es).
+
+Sin embargo, mi perspectiva cambió cuando dejé de verlo como un problema de cálculo tradicional y empecé a buscarle la lógica matemática. Así como en los concursos del ICPC o resolviendo problemas en Codeforces siempre busco la manera de optimizar el código para no dar \textit{Time Limit Exceeded}, en Fourier aprendí a identificar rápido las simetrías. Saber desde el inicio si una función era par o impar y que un coeficiente $a_n$ o $b_n$ se hacía cero automáticamente, me ahorraba páginas enteras de cuentas que no necesitaba hacer. Esto fue posible, sobre todo, gracias a los tips que nos dio el profesor de Procesamiento de Señales para facilitarnos el trabajo.
+
+Pero lo que realmente hizo que el tema me hiciera clic fue conectarlo con mi carrera en Inteligencia Artificial. Pasar una señal del dominio del tiempo al de la frecuencia dejó de ser un concepto abstracto en el pizarrón cuando vi su peso en el \textit{machine learning}. Por ejemplo, en el procesamiento de imágenes o visión artificial, aplicar estas transformadas hace que operaciones súper pesadas, como las convoluciones, se vuelvan muchísimo más eficientes.
+
+Tener que trabajarlo en Excel fue súper extraño porque, siendo sincera, nunca jamás lo había abordado de una forma más computacional. Lo habitual era sacar los coeficientes y ahí se quedaba; esta es la primera vez que uso esos coeficientes para evaluar puntos y aproximarlos a mi función, viéndolo de una manera mucho más gráfica y sin tanta ``talacha''.
+
+Espero seguir descubriendo más sobre cómo se aplica Fourier o cómo se puede relacionar con el cómputo paralelo, para que un concepto que solo veía matemáticamente pueda transformarse en una herramienta tangible en mi día a día.
+
+\clearpage
+
+\subsection{Conclusión — Lino Ehecatl Romero Rosales}
+\label{sec:cap01:conclusiones:lino}
+
+Realizar esta práctica me dejó aprendizajes muy valiosos, sobre todo en la forma en que conectamos la teoría analítica con la programación y las aplicaciones reales de nuestra carrera. Al resolver a mano la serie de Fourier para la función propuesta, el reto no fue tanto la dificultad de las matemáticas sino la disciplina de observar cómo se descompone la señal paso a paso. Resolver la serie para encontrar los coeficientes ,  y  te obliga a entender la estructura interna de la función. Sin embargo, el verdadero aprendizaje ocurre al tomar esos resultados en papel y pasarlos a scripts en Python o MATLAB. Validar de forma computacional que, al agregar más armónicos, la superposición de senos y cosenos reconstruye perfectamente la función original, es una forma excelente de comprobar que nuestras matemáticas están correctas y listas para aplicarse.
+Al investigar el contexto y las aplicaciones para este capítulo, me pareció fascinante ver cómo algo que comenzó como un modelo térmico es hoy el lenguaje universal de la tecnología. En el ámbito de la ingeniería, y recordando temas específicos de procesamiento digital de señales, me queda claro que sin el análisis de Fourier estaríamos trabajando a ciegas. Entender que podemos tomar cualquier señal del mundo real, trasladarla a sus frecuencias mediante operaciones de matrices y diseñarle filtros para aislar ruido o rescatar información, le da un sentido totalmente práctico a las matemáticas puras. Ya no son solo fórmulas, son las herramientas exactas con las que vamos a optimizar sistemas en nuestra vida diaria.
+Pero definitivamente, el aprendizaje que más me entusiasmó fue dimensionar el impacto de Fourier en la inteligencia artificial. Al investigar, me di cuenta de que estas series trascienden las señales eléctricas y se meten de lleno en la optimización de algoritmos complejos. Ver cómo las bases de Fourier se aplican para aproximar funciones de valor en modelos de aprendizaje por refuerzo, o cómo el análisis espectral ayuda a evaluar el comportamiento de los agentes en la inteligencia de enjambres para evitar que se estanquen en mínimos locales, me demostró que este tema está más vigente que nunca. Incluso descubrir el avance de la computación fotónica, usando luz láser para procesar transformadas instantáneamente y acelerar el entrenamiento de modelos pesados, te abre los ojos a lo que viene.
+En conclusión, esta práctica fue un excelente ejercicio de integración. Más allá del trabajo matematico de resolver la función algebraica, me sirvió para consolidar mi visión como ingeniero. Me comprobó que dominar el análisis de Fourier es tener la llave para modelar matemáticamente problemas complejos y programar soluciones verdaderamente eficientes, tanto en la ingeniería clásica como en las arquitecturas modernas de inteligencia artificial.
+
+\clearpage
+
+\subsection{Conclusión — Aarón Ugalde Téllez}
+\label{sec:cap01:conclusiones:aaron}
+
+Al revisar estas ocho áreas resulta evidente que las series y transformadas de Fourier no son un recurso matemático más entre muchos, sino un lenguaje común que atraviesa de manera transversal a la ciencia y la tecnología contemporáneas. Su idea central —que un fenómeno complejo puede descomponerse en componentes de frecuencia simples, analizarse por separado y luego reconstruirse sin pérdida de información esencial— resulta tan útil para comprimir una fotografía como para reconstruir una imagen médica, afinar un instrumento musical, evaluar el riesgo sísmico de un edificio, describir el comportamiento cuántico de una partícula subatómica o detectar el paso de una onda gravitacional a miles de millones de años luz de distancia.
+
+Lo que hace especialmente notable a esta herramienta es su capacidad de unificación. En telecomunicaciones, el análisis de frecuencias permite que múltiples señales compartan un mismo canal físico sin interferirse, sosteniendo la infraestructura de internet, la telefonía móvil y la transmisión de radio y televisión. En el procesamiento de imágenes, el mismo principio matemático que Fourier usó para modelar la difusión del calor en una lámina metálica es hoy la base del formato JPEG y de los estándares de video más usados del mundo, permitiendo que miles de millones de fotografías y videos se almacenen y transmitan de forma eficiente cada día. En medicina, la reconstrucción por Fourier del espacio-k convierte señales de radiofrecuencia en imágenes anatómicas de altísima resolución sin necesidad de radiación ionizante, siendo hoy una herramienta diagnóstica indispensable. En química analítica, la espectroscopía FTIR aplica el mismo principio para identificar sustancias y detectar impurezas con una precisión que sería inalcanzable con métodos dispersivos tradicionales.
+
+En la física fundamental, el papel de Fourier es aún más profundo: no se trata solo de una técnica de cálculo conveniente, sino de una relación que refleja la naturaleza misma de la realidad cuántica, donde posición y momento son variables conjugadas ligadas precisamente por una transformada de Fourier, lo que explica formalmente el principio de incertidumbre de Heisenberg. Y en la frontera de la astrofísica observacional, el análisis espectral permite a instrumentos como LIGO extraer señales gravitacionales extraordinariamente débiles del ruido de fondo, abriendo una ventana completamente nueva para observar el universo.
+
+Doscientos años después de que Joseph Fourier formulara su método para resolver un problema de conducción térmica, la vigencia de su idea en campos que él jamás podría haber imaginado —la resonancia magnética, las telecomunicaciones digitales, la detección de ondas gravitacionales— es quizás la mejor demostración de que las matemáticas fundamentales, cuando capturan una estructura verdaderamente universal de la naturaleza, trascienden por completo el problema original que las inspiró. Las series de Fourier no solo resolvieron una ecuación diferencial del siglo XIX: proporcionaron una manera nueva de pensar cualquier fenómeno que varíe en el tiempo o en el espacio, y esa forma de pensar sigue, hoy, en el centro mismo de la innovación científica y tecnológica.
