@@ -1,0 +1,41 @@
+% =====================================================================
+%  practicas/prac01.tex — ENTREGA INDIVIDUAL de la Práctica 1
+%
+%  Compilar desde la RAÍZ del repositorio:
+%      make prac01     (o)   latexmk -pdf practicas/prac01.tex
+%
+%  Genera un PDF autocontenido: portada, índice de contenido, índice
+%  de figuras, índice de tablas, el desarrollo de la práctica y sus
+%  referencias IEEE.
+%
+%  IMPORTANTE: esto es una entrega INDEPENDIENTE. Nunca se incluye en
+%  libro.tex ni se mezcla con los capítulos del libro (capitulos/).
+%  NO edites el contenido aquí: vive en practicas/prac01/contenido.tex
+% =====================================================================
+\documentclass[12pt, letterpaper, oneside, openany]{book}
+
+\input{config/metadatos}
+\input{config/preambulo}
+\input{config/portada}
+
+% Las prácticas se rotulan "Práctica N", no "Capítulo N".
+% OJO: tiene que ir dentro de \captionsspanish. Un \renewcommand suelto
+% aquí NO funciona: babel reasigna \chaptername al llegar a
+% \begin{document} y se lo come.
+\addto\captionsspanish{\renewcommand{\chaptername}{Práctica}}
+
+\begin{document}
+
+% ------------------- Material preliminar -------------------
+\frontmatter
+\Portada{\TituloPracUno}{Práctica 1}
+\Indices
+
+% ------------------- Cuerpo -------------------
+\mainmatter
+\input{practicas/prac01/contenido}
+
+% ------------------- Referencias -------------------
+\Referencias
+
+\end{document}

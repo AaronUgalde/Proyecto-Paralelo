@@ -119,6 +119,9 @@ XeLaTeX y deja la salida en `build/`).
 │   │   └── figuras/          # imágenes del capítulo 1 (prefijo cap01-)
 │   └── … cap07/
 ├── img/                      # logos institucionales y figuras compartidas
+├── practicas/                # prácticas sueltas — NO forman parte del libro
+│   ├── prac01.tex            # ver sección "Prácticas" más abajo
+│   └── prac01/{contenido.tex, figuras/}
 ├── entregas/                 # PDF finales
 └── build/                    # intermedios (git-ignored)
 ```
@@ -157,6 +160,45 @@ XeLaTeX y deja la salida en `build/`).
 - `algorithm2e` para pseudocódigo, `booktabs` para tablas, `siunitx` para unidades.
 
 ---
+
+## Prácticas (entregas independientes, fuera del libro)
+
+Además del libro de 7 capítulos, la materia pide **prácticas** sueltas
+durante el semestre. Usan exactamente la misma estructura de entrega
+(portada, índices, referencias IEEE) pero **nunca se incluyen en
+`libro.tex`**: son PDF completamente independientes.
+
+```
+practicas/
+├── prac01.tex             # envoltorio de la práctica 1 (portada+índices+referencias)
+├── prac01/
+│   ├── contenido.tex      # ← aquí se escribe la práctica 1
+│   └── figuras/           # imágenes de la práctica 1 (prefijo prac01-)
+└── prac02.tex, prac02/...  # se agregan igual conforme se asignen
+```
+
+Compilación:
+
+```bash
+make prac01        # entrega de la práctica 1 → entregas/Practica-01.pdf
+make practicas      # todas las prácticas existentes
+```
+
+Para agregar una práctica nueva (por ejemplo la 2):
+
+1. Crea `practicas/prac02/contenido.tex` y `practicas/prac02/figuras/`
+   copiando la estructura de `practicas/prac01/`.
+2. Crea `practicas/prac02.tex` copiando `practicas/prac01.tex` y
+   cambiando `\TituloPracUno` → `\TituloPracDos` y las rutas `prac01` → `prac02`.
+3. Agrega `\TituloPracDos` en `config/metadatos.tex`.
+4. Agrega `{practicas/prac02/figuras/}` al `\graphicspath` en
+   `config/preambulo.tex`.
+5. No hay que tocar el `Makefile`: `make prac02` funciona solo porque
+   detecta automáticamente cualquier `practicas/pracNN.tex` que exista.
+
+Las prácticas comparten la misma bibliografía (`bib/referencias.bib`)
+y las mismas ayudas del preámbulo (`\Figura`, `nota`, `definicion`,
+estilos de código, etc.) que los capítulos del libro.
 
 ## Notas
 

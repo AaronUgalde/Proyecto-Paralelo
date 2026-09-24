@@ -10,39 +10,385 @@
 %     y citadas sólo por nombre: \includegraphics{cap02-esquema.png}
 %   * Etiquetas: fig:cap02:..., tab:cap02:..., sec:cap02:..., lst:cap02:...
 %   * Citas con \cite{clave} sobre bib/referencias.bib
+%
+%  ESTRUCTURA: sigue el guion de la práctica (2.1 gráficas originales,
+%  2.2 gráficas con la serie, 2.3 comparaciones, 2.4 conclusiones), y
+%  dentro de cada una va una subsección por integrante.
+%
+%  NO mencionar los .xlsx en el texto ni presentarlos como adjuntos
+%  (decisión del usuario, 2026-09-18). Los libros de Excel siguen en
+%  capitulos/cap02/exeles/ como respaldo interno del equipo, pero el
+%  documento no los cita.
+%
+%  ORIGEN: fusiona las cuatro entregas individuales del equipo.
+%  Todas las figuras referenciadas existen; no quedan cajas de
+%  reemplazo pendientes.
 % =====================================================================
 
 \chapter{\TituloCapDos}
 \label{cap:02}
 
-\section{Introducción}
-\label{sec:cap02:introduccion}
+En este capítulo se lleva la Serie de Fourier resuelta analíticamente en el capítulo anterior a una hoja de cálculo. Cada integrante tabuló su función en el intervalo $[-\pi, \pi]$, construyó una matriz con los diez primeros armónicos, sumó los términos para obtener la aproximación $F(x)$ y superpuso ambas curvas para valorar la convergencia.
 
-Contenido pendiente.
+% =====================================================================
+% 2.1 Gráficas originales
+% =====================================================================
+\section{Gráficas originales de las funciones propuestas}
+\label{sec:cap02:originales}
 
-\section{Desarrollo}
-\label{sec:cap02:desarrollo}
+% ---------------------------------------------------------------------
+\subsection{Función propuesta por Said Carbot Cruz Trejo}
+\label{sec:cap02:orig:said}
 
-Contenido pendiente.
+La información obtenida y modelada en la hoja de cálculo se basa en el comportamiento de la función original $f(x) = x^5$. A continuación se muestra su representación gráfica.
 
-% Ejemplo de figura (descomenta y ajusta):
-% \Figura{cap02-ejemplo.png}{0.7}{Pie de la figura.}{capjemplo}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-said-original.png}
+    \caption{Gráfica de la función original $f(x) = x^5$ en el intervalo $[-\pi, \pi]$.}
+    \label{fig:cap02:said:original}
+\end{figure}
 
-% Ejemplo de tabla (descomenta y ajusta):
-% \begin{table}[H]
-%     \centering
-%     \caption{Pie de la tabla.}
-%     \label{tab:capjemplo}
-%     \begin{tabular}{lrr}
-%         \toprule
-%         \textbf{Columna} & \textbf{Valor} & \textbf{Unidad} \\
-%         \midrule
-%         Ejemplo & 0.00 & s \\
-%         \bottomrule
-%     \end{tabular}
-% \end{table}
+Esta gráfica representa el crecimiento polinomial de quinto grado en los límites de $\pi$ y $-\pi$, lo cual es fundamental para acotar los saltos periódicos que se modelan en los pasos posteriores.
 
+% ---------------------------------------------------------------------
+\subsection{Función propuesta por Magaly López Castro}
+\label{sec:cap02:orig:magaly}
+
+Para analizar el comportamiento de la señal original se tabuló la función polinomial $f(x) = 5x^3 - 3x^2 + 1$ dentro de una hoja de cálculo. La evaluación se realizó tomando valores de $x$ con incrementos constantes, lo que generó los puntos base de la primera columna de la tabla.
+
+Como se observa en la figura \ref{fig:cap02:magaly:original}, la gráfica resultante ilustra el comportamiento cúbico característico de la función, destacando su crecimiento no lineal en los extremos del intervalo evaluado.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-magaly-original.png}
+    \caption{Comportamiento de la función original $f(x) = 5x^3 - 3x^2 + 1$.}
+    \label{fig:cap02:magaly:original}
+\end{figure}
+
+% ---------------------------------------------------------------------
+\subsection{Función propuesta por Lino Ehecatl Romero Rosales}
+\label{sec:cap02:orig:lino}
+
+En esta sección se analiza el comportamiento de la función $f(x) = -\frac{1}{4}x^4 + 3$, restringida al intervalo $[-\pi, \pi]$. Para llevar a cabo la representación numérica se estructuró una hoja de cálculo inicializando la variable $x$ en el límite inferior $-\pi$ y incrementándola uniformemente, para después evaluar la ecuación en cada nodo y obtener la columna de la variable dependiente.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-lino-original.jpeg}
+    \caption{Comportamiento de la función original $f(x) = -\frac{1}{4}x^4 + 3$.}
+    \label{fig:cap02:lino:original}
+\end{figure}
+
+Como se observa en la figura \ref{fig:cap02:lino:original}, la curva tiene una simetría par respecto al eje vertical y su vértice representa el punto máximo de la función dentro de su dominio. Esta representación sirve como la base con la cual se mide la exactitud de la serie de Fourier.
+
+% ---------------------------------------------------------------------
+\subsection{Función propuesta por Aarón Ugalde Téllez}
+\label{sec:cap02:orig:aaron}
+
+La función asignada es el polinomio de segundo grado
+
+\begin{equation}
+    f(x) = -\frac{5}{6}x^{2} + \frac{1}{3}x - \frac{2}{7},
+    \qquad x \in [-\pi, \pi].
+    \label{eq:cap02:aaron:funcion}
+\end{equation}
+
+A diferencia de las anteriores, esta función no posee simetría: el término $-\frac{5}{6}x^{2}$ y la constante $-\frac{2}{7}$ son pares, mientras que el término $\frac{1}{3}x$ es impar. En consecuencia, su desarrollo en serie requiere tanto los coeficientes $a_n$ del coseno como los $b_n$ del seno, y ninguna de las dos familias se anula.
+
+Para la tabulación se inicializó la columna de la variable independiente en $x = -\pi$ y se incrementó con paso constante hasta $x = \pi$, evaluando la ecuación \eqref{eq:cap02:aaron:funcion} en cada nodo para obtener la columna de la variable dependiente.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-aaron-original.png}
+    \caption{Comportamiento de la función original $f(x) = -\frac{5}{6}x^{2} + \frac{1}{3}x - \frac{2}{7}$.}
+    \label{fig:cap02:aaron:original}
+\end{figure}
+
+La curva es una parábola cóncava hacia abajo cuyo vértice se desplaza ligeramente a la derecha del origen, en $x = \frac{1}{5}$, a diferencia de una parábola par centrada en cero. Ese desplazamiento es la huella del término lineal y es también la razón por la que la función toma valores distintos en los dos extremos del intervalo: $f(\pi) \approx -7.4632$ frente a $f(-\pi) \approx -9.5576$. Esta diferencia resulta determinante para interpretar el comportamiento de la serie en los bordes, como se discute en la sección \ref{sec:cap02:comp:aaron}.
+
+% =====================================================================
+% 2.2 Gráficas obtenidas con la serie de Fourier
+% =====================================================================
+\section{Gráficas obtenidas con la serie de Fourier}
+\label{sec:cap02:fourier}
+
+% ---------------------------------------------------------------------
+\subsection{Aproximación de Said Carbot Cruz Trejo}
+\label{sec:cap02:four:said}
+
+Para aproximar la función se consideran los primeros diez términos. Todos los cálculos, incluyendo la matriz de iteraciones y la suma de los términos, se realizaron en la hoja de cálculo y se resumen en las figuras siguientes.
+
+Al tratarse de una función impar, los coeficientes $a_n$ se anulan y el desarrollo queda determinado únicamente por los coeficientes $b_n$ del seno, cuyos valores para las diez iteraciones se muestran a continuación.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{cap02-said-coeficientes.png}
+    \caption{Coeficientes $b_n$ obtenidos para las diez primeras iteraciones de $f(x) = x^5$.}
+    \label{fig:cap02:said:coeficientes}
+\end{figure}
+
+A continuación se muestra la matriz para los primeros diez términos y la sumatoria de la serie, extraída de la hoja de cálculo con propósitos de referencia.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-said-matriz.png}
+    \caption{Matriz de los diez primeros términos de la Serie de Fourier de $f(x) = x^5$ y su sumatoria.}
+    \label{fig:cap02:said:matriz}
+\end{figure}
+
+A partir de esa matriz se obtuvo la siguiente gráfica. Como puede observarse, se parece a la figura original, pero necesitaría más términos para aproximarse mejor.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-said-fourier.png}
+    \caption{Aproximación de $f(x) = x^5$ mediante la suma de los diez primeros términos de la Serie de Fourier.}
+    \label{fig:cap02:said:fourier}
+\end{figure}
+
+Como se observa en la figura \ref{fig:cap02:said:fourier}, la suma de los términos logra moldear el centro del intervalo aproximándose a la función impar, mostrando las oscilaciones características del fenómeno de Gibbs en los extremos.
+
+% ---------------------------------------------------------------------
+\subsection{Aproximación de Magaly López Castro}
+\label{sec:cap02:four:magaly}
+
+Una vez obtenida la función original se procedió a calcular su aproximación analítica mediante la Serie de Fourier. El proceso se llevó a cabo estructurando una matriz de resultados en la hoja de cálculo \cite{walkenbach:excel-bible:2015}, calculando individualmente los términos de las primeras diez iteraciones ($n=1$ hasta $n=10$) junto con el coeficiente fundamental $a_0$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{cap02-magaly-iteraciones.png}
+    \caption{Matriz de cálculos con los términos obtenidos para las diez iteraciones ($n=1$ a $n=10$).}
+    \label{fig:cap02:magaly:iteraciones}
+\end{figure}
+
+Posteriormente se calculó la sumatoria total de los términos evaluados en cada iteración para obtener la función aproximada $F(x)$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.2\textwidth]{cap02-magaly-suma.png}
+    \caption{Columna que representa la sumatoria total de los términos de la serie de Fourier, $F(x)$.}
+    \label{fig:cap02:magaly:suma}
+\end{figure}
+
+Al graficar esa columna se obtiene la aproximación de la serie por sí sola, mostrada en la figura \ref{fig:cap02:magaly:fourier}. La curva reproduce la tendencia creciente del polinomio cúbico y mantiene el tramo central relativamente plano, pero presenta oscilaciones visibles a lo largo del recorrido y un descenso brusco en el extremo derecho. Ambos efectos son consecuencia de haber truncado la sumatoria en diez iteraciones.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{cap02-magaly-fourier.jpg}
+    \caption{Aproximación $F(x)$ de la función $f(x) = 5x^3 - 3x^2 + 1$ obtenida con diez iteraciones de la Serie de Fourier.}
+    \label{fig:cap02:magaly:fourier}
+\end{figure}
+
+Conviene notar que el eje horizontal de esta gráfica corresponde al número de renglón de la hoja de cálculo y no directamente al valor de $x$, por lo que el intervalo $[-\pi, \pi]$ aparece recorrido de izquierda a derecha en los sesenta y cuatro nodos evaluados.
+
+% ---------------------------------------------------------------------
+\subsection{Aproximación de Lino Ehecatl Romero Rosales}
+\label{sec:cap02:four:lino}
+
+Para la reconstrucción de la señal mediante series de Fourier se empleó una matriz iterada en la hoja de cálculo. Aprovechando la simetría par de la función, todos los coeficientes $b_n$ equivalen a cero, por lo que el modelo se optimizó usando únicamente el término constante $a_0/2 = -1.8704$ y los coeficientes $a_n$ del coseno. La figura \ref{fig:cap02:lino:coeficientes} muestra los valores obtenidos para las diez iteraciones: la columna $b_n$ aparece completa en ceros, lo que confirma numéricamente la simetría par de la función, y los $a_n$ alternan de signo mientras decrecen en magnitud desde $7.7392$ hasta $-0.1962$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{cap02-lino-coeficientes.jpg}
+    \caption{Coeficientes $a_n$ y $b_n$ obtenidos para las diez primeras iteraciones de $f(x) = -\frac{1}{4}x^4 + 3$.}
+    \label{fig:cap02:lino:coeficientes}
+\end{figure}
+
+Las columnas del sistema representan las iteraciones desde $n=1$ hasta $n=10$, y el cálculo de cada celda de la matriz multiplica el coeficiente $a_n$ iterado por $\cos(nx)$. La figura \ref{fig:cap02:lino:matriz} presenta un extracto de esa matriz de resultados correspondiente al extremo inferior del intervalo, en $x \approx -\pi$. En ese punto $\cos(n\pi) = (-1)^n$, de modo que cada término reproduce el coeficiente $a_n$ con el signo invertido en los órdenes impares; por eso todos los valores de la fila resultan negativos aunque los coeficientes originales alternen.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{cap02-lino-matriz.jpg}
+    \caption{Extracto de la matriz iterativa de los diez primeros armónicos, evaluada en $x \approx -\pi$.}
+    \label{fig:cap02:lino:matriz}
+\end{figure}
+
+Para obtener la aproximación final $F(x)$ se configuró una columna de sumatoria que agrupa $a_0/2$ con la suma horizontal de los diez armónicos para cada valor de $x$. La representación gráfica del resultado es la siguiente.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-lino-fourier.jpeg}
+    \caption{Aproximación de $f(x) = -\frac{1}{4}x^4 + 3$ mediante la Serie de Fourier con diez armónicos.}
+    \label{fig:cap02:lino:fourier}
+\end{figure}
+
+La figura \ref{fig:cap02:lino:fourier} demuestra cómo la suma sucesiva de ondas coseno de distintas frecuencias y amplitudes adquiere una curvatura similar a la propuesta en el problema original.
+
+% ---------------------------------------------------------------------
+\subsection{Aproximación de Aarón Ugalde Téllez}
+\label{sec:cap02:four:aaron}
+
+Puesto que la función carece de simetría, la hoja de cálculo debe contemplar las dos familias de coeficientes. Integrando la ecuación \eqref{eq:cap02:aaron:funcion} sobre el intervalo se obtienen las expresiones cerradas que alimentan la matriz:
+
+\begin{align}
+    \frac{a_0}{2} &= -\frac{5\pi^{2}}{18} - \frac{2}{7} \approx -3.0273, \label{eq:cap02:aaron:a0}\\[4pt]
+    a_n &= \frac{10\,(-1)^{n+1}}{3n^{2}}, \label{eq:cap02:aaron:an}\\[4pt]
+    b_n &= \frac{2\,(-1)^{n+1}}{3n}. \label{eq:cap02:aaron:bn}
+\end{align}
+
+Conviene notar el distinto ritmo de decaimiento de ambas familias: los $a_n$ decrecen como $1/n^{2}$, mientras que los $b_n$ lo hacen apenas como $1/n$. Son estos últimos, los que provienen del término lineal, los que dominan el error con pocos armónicos y los que gobiernan el comportamiento de la serie en los extremos del intervalo.
+
+Con esos coeficientes se construyó la matriz, en la que cada celda corresponde a un armónico completo, es decir, a la suma de su término en coseno y su término en seno. La figura \ref{fig:cap02:aaron:matriz} muestra un extracto tomado del extremo inferior del intervalo, en $x \approx -\pi$. Esa fila permite verificar el modelo sin recurrir a la gráfica: como $\operatorname{sen}(n\pi) = 0$, la contribución de los senos se anula en ese punto y cada celda se reduce a $a_n\cos(n\pi) = a_n(-1)^n$. El resultado es que todos los términos aparecen negativos pese a que los coeficientes alternan de signo, y sus magnitudes reproducen una a una las que dan las expresiones anteriores.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{cap02-aaron-matriz.png}
+    \caption{Extracto de la matriz de los diez armónicos, evaluada en $x \approx -\pi$, precedida por el término constante $a_0/2$.}
+    \label{fig:cap02:aaron:matriz}
+\end{figure}
+
+La columna de sumatoria concentra el resultado del modelo. Sumando el término constante $a_0/2 = -3.0272711$ con los diez armónicos de esa misma fila se obtiene $F(-\pi) \approx -8.1931$, que es exactamente el primer valor de la columna $F(x)$ de la figura \ref{fig:cap02:aaron:suma}. Esta coincidencia confirma que las referencias de la hoja están bien ancladas y que la matriz suma lo que debe.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{cap02-aaron-suma.png}
+    \caption{Columna de sumatoria $F(x)$ junto al término constante $a_0/2$, repetido en cada renglón.}
+    \label{fig:cap02:aaron:suma}
+\end{figure}
+
+Al graficar esa columna se obtiene la aproximación de la serie por sí sola.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-aaron-fourier.png}
+    \caption{Aproximación $F(x)$ de $f(x) = -\frac{5}{6}x^{2} + \frac{1}{3}x - \frac{2}{7}$ mediante la Serie de Fourier con diez armónicos.}
+    \label{fig:cap02:aaron:fourier}
+\end{figure}
+
+La curva conserva la forma de parábola invertida en casi todo el intervalo, pero se aparta de ella en los extremos: en lugar de continuar descendiendo hacia los valores de la función original, se dobla y forma un pequeño rizo cerca de $x = -\pi$. Ese rizo no es un error de la hoja de cálculo, sino la manifestación del comportamiento que se analiza en la sección \ref{sec:cap02:comp:aaron}.
+
+% =====================================================================
+% 2.3 Comparaciones
+% =====================================================================
+\section{Comparaciones entre las gráficas obtenidas}
+\label{sec:cap02:comparaciones}
+
+% ---------------------------------------------------------------------
+\subsection{Comparación de Said Carbot Cruz Trejo}
+\label{sec:cap02:comp:said}
+
+Al superponer la función original y la aproximación mediante la serie de Fourier puede analizarse el nivel de precisión alcanzado con diez iteraciones.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-said-comparativa.png}
+    \caption{Comparación entre la gráfica original $f(x) = x^5$ y la aproximación por Serie de Fourier con diez iteraciones.}
+    \label{fig:cap02:said:comparativa}
+\end{figure}
+
+La gráfica ilustra cómo la serie persigue la trayectoria de la curva original. La mayor discrepancia se ubica en los bordes del intervalo debido a la naturaleza continua de las ondas senoidales intentando compensar los saltos de una función que, al extenderse periódicamente, se vuelve discontinua en $\pi$ y $-\pi$.
+
+% ---------------------------------------------------------------------
+\subsection{Comparación de Magaly López Castro}
+\label{sec:cap02:comp:magaly}
+
+Para valorar el ajuste se superpusieron en un mismo plano la señal original $f(x) = 5x^3 - 3x^2 + 1$, mostrada de forma aislada en la figura \ref{fig:cap02:magaly:original}, y su aproximación $F(x)$ de la figura \ref{fig:cap02:magaly:fourier}. El resultado se presenta en la figura \ref{fig:cap02:magaly:comparativa}, donde la curva azul corresponde a la función original y la roja a la serie de Fourier.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-magaly-comparativa.png}
+    \caption{Superposición de la función original $f(x)$ frente a la aproximación de Fourier $F(x)$ con diez iteraciones.}
+    \label{fig:cap02:magaly:comparativa}
+\end{figure}
+
+La comparación revela que la matriz de diez iteraciones es suficiente para que la aproximación capture la tendencia de crecimiento cúbico de la señal base. Sin embargo, al superponerlas se hacen evidentes ciertas oscilaciones (\textit{ripples}) en la curva aproximada, especialmente en los extremos del intervalo evaluado. Este comportamiento ilustra gráficamente el desafío de aproximar una curva polinomial utilizando una sumatoria finita de funciones periódicas. Queda demostrado visualmente que, aunque la serie de Fourier sigue el camino del polinomio original, requeriría un número mucho mayor de iteraciones para suavizarse y lograr un empalme exacto.
+
+% ---------------------------------------------------------------------
+\subsection{Comparación de Lino Ehecatl Romero Rosales}
+\label{sec:cap02:comp:lino}
+
+El objetivo final de la evaluación numérica es contrastar la señal original $f(x)$ con la señal reconstruida $F(x)$ para analizar el margen de error del modelo. Para ello se sobrepusieron los datos de ambas columnas de la hoja de cálculo en un mismo plano.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-lino-comparativa.jpeg}
+    \caption{Comparativa de ajuste: función original frente a la Serie de Fourier.}
+    \label{fig:cap02:lino:comparativa}
+\end{figure}
+
+Al analizar la figura \ref{fig:cap02:lino:comparativa} se aprecia que ambas gráficas tienen una convergencia muy parecida en la mayor parte del intervalo. La serie de Fourier con apenas diez iteraciones logra modelar la concavidad de la función y el ajuste es casi exacto en el centro del dominio; sin embargo, al observar los extremos del intervalo entre $-\pi$ y $\pi$ se nota una leve desviación típica de las aproximaciones. Incrementar el número de iteraciones en la matriz permitiría suavizar este error y lograr una convergencia aún más cercana a la ecuación original.
+
+% ---------------------------------------------------------------------
+\subsection{Comparación de Aarón Ugalde Téllez}
+\label{sec:cap02:comp:aaron}
+
+La superposición de $f(x)$ y $F(x)$ permite valorar el ajuste alcanzado con diez armónicos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{cap02-aaron-comparativa.png}
+    \caption{Comparativa de ajuste: función original $f(x)$ frente a la Serie de Fourier $F(x)$ con diez armónicos.}
+    \label{fig:cap02:aaron:comparativa}
+\end{figure}
+
+La figura \ref{fig:cap02:aaron:comparativa} muestra un ajuste prácticamente indistinguible en todo el tramo central: entre $x = -2.5$ y $x = 2.5$ ambas curvas se superponen y sólo se separan lo suficiente para distinguirse por el grosor del trazo. La discrepancia se concentra en los extremos, donde la curva de la serie se desprende de la parábola y la cruza.
+
+Este comportamiento se deduce de la propia función. Como se señaló en la sección \ref{sec:cap02:orig:aaron}, $f(-\pi) \neq f(\pi)$: al repetir el intervalo periódicamente aparece un salto de altura $f(-\pi) - f(\pi) = -\frac{2\pi}{3} \approx -2.0944$ en cada múltiplo impar de $\pi$. Una suma finita de senos y cosenos, que son funciones continuas, no puede reproducir una discontinuidad, de modo que la serie no converge al valor de la función en esos puntos sino al punto medio del salto:
+
+\begin{equation}
+    F(\pm\pi) = \frac{f(\pi^{-}) + f(-\pi^{+})}{2}
+              = -\frac{5\pi^{2}}{6} - \frac{2}{7} \approx -8.5104 .
+    \label{eq:cap02:aaron:midpoint}
+\end{equation}
+
+La hoja de cálculo permite comprobarlo: con diez armónicos la columna de sumatoria arroja $F(-\pi) \approx -8.1931$, un valor que no se parece a $f(-\pi) \approx -9.5576$ pero que ya se aproxima al punto medio $-8.5104$ y seguiría acercándose a él conforme se agregaran términos. Es decir, la serie no está fallando en reproducir la función: está convergiendo correctamente, sólo que hacia un valor distinto del que toma $f$ en ese punto.
+
+Éste es el mismo fenómeno de Gibbs que reportan los compañeros cuya función también resulta discontinua al extenderse. La diferencia es de origen: en el caso de $f(x) = x^5$ el salto proviene de la propia paridad impar del polinomio, mientras que aquí lo introduce únicamente el término lineal $\frac{1}{3}x$. Si ese término se eliminara, la función quedaría par, los $b_n$ se anularían y la extensión periódica sería continua, como ocurre con la función de cuarto grado analizada en la sección \ref{sec:cap02:comp:lino}.
+
+Por eso se espera un ajuste muy cercano en el interior del intervalo —donde la parábola es suave y los $a_n$, que decaen como $1/n^{2}$, convergen con rapidez— y una desviación concentrada en las cercanías de $\pm\pi$, que sólo se reduce lentamente al agregar más armónicos.
+
+% =====================================================================
+% 2.4 Conclusiones del capítulo
+% =====================================================================
 \section{Conclusiones del capítulo}
-\label{sec:cap02onclusiones}
+\label{sec:cap02:conclusiones}
 
-Contenido pendiente.
+\subsection{Conclusión — Said Carbot Cruz Trejo}
+\label{sec:cap02:concl:said}
+
+En esta segunda fase del proyecto, el trabajo consistió en pasar del cálculo analítico de las series de Fourier a su implementación visual y numérica en una hoja de cálculo. Trabajar la teoría en papel me proporcionó las bases matemáticas, pero plasmar esos datos en una matriz me hizo enfrentar los problemas de las aproximaciones numéricas. Durante este proceso observé las diferencias prácticas entre una ecuación escrita y un modelo programado, especialmente porque tuve que traducir cada paso a un formato que el software pudiera procesar.
+
+Al analizar la función asignada, $f(x)=x^5$, el primer desafío conceptual que encontré fue adaptar los límites de integración en el intervalo de $-\pi$ a $\pi$. Como se trata de una función impar que crece a la quinta potencia, los resultados que obtuve al evaluar los extremos fueron de una magnitud alta. Al realizar la extensión periódica para modelarla con senos y cosenos se produjeron saltos y discontinuidades en los bordes del intervalo. Tuve que comprender cómo la serie de Fourier intenta conectar el punto positivo $\pi^5$ con el negativo $-\pi^5$ a través de una suma infinita. Cuando grafiqué estas iteraciones identifiqué el fenómeno de Gibbs: observé cómo las ondas senoidales creaban oscilaciones en los extremos para compensar esos saltos periódicos. Ver este comportamiento en la gráfica me ayudó a entender lo que sucedía matemáticamente en los bordes.
+
+Para llevar esto a la práctica construí una matriz de resultados en la hoja de cálculo. Un aspecto que me costó trabajo fue el cálculo general dentro de Excel. Como no estoy familiarizado con las fórmulas de esta herramienta, el proceso inicial tomó tiempo. Tuve que buscar en línea cómo utilizar las funciones matemáticas básicas, en particular cómo escribir y aplicar la función seno. Aprendí que la sintaxis requería comandos específicos como \texttt{SIN()} y que debía tener cuidado con la forma en que Excel interpreta los radianes. Esta curva de aprendizaje técnico representó una parte considerable de la práctica, ya que debía asegurarme de que cada celda realizara el cálculo correcto antes de extender la fórmula al resto de la tabla.
+
+Sistematizar los cálculos me obligó a planear la estructura de la hoja. En lugar de calcular cada término uno por uno, la automatización dependió de formular las referencias para iterar la serie en los distintos valores de $x$. La función principal que utilicé como núcleo para construir el modelo fue \texttt{=\$P\$9*SIN(\$O\$9*\$A4)}. Esta instrucción contiene la lógica matemática del armónico. Entender el uso de las referencias absolutas y mixtas fue el punto central para armar la matriz: la celda \texttt{\$P\$9} fijó la columna y la fila para mantener estable el valor del coeficiente de Fourier $b_n$; la celda \texttt{\$O\$9} ancló el valor de $n$, que dictaba la frecuencia del armónico; y \texttt{\$A4} ancló sólo la columna de la variable independiente $x$, dejando la fila libre. Al arrastrar la fórmula hacia los lados para sumar iteraciones y hacia abajo para avanzar en el eje $x$, Excel evaluó los términos de la serie.
+
+Después procedí a sumar estos términos armónicos en una columna final para ver cómo se construía la aproximación. Al cumplir con el requerimiento de calcular al menos diez iteraciones observé el cambio en la gráfica paso a paso. En las primeras iteraciones la gráfica mostraba una onda que no se asemejaba al polinomio de quinto grado; conforme fui sumando el quinto, sexto y décimo término registré cómo la gráfica se aplanaba en el centro del intervalo. La forma resultante se acercó a la pendiente original de $x^5$, dejando fuera de esta convergencia las inestabilidades en los límites causadas por los saltos mencionados.
+
+En conclusión, esta fase del proyecto me demostró que el uso de hojas de cálculo sirve para validar algoritmos y visualizar el comportamiento de ecuaciones complejas. El desarrollo de la práctica me obligó a buscar información técnica sobre el uso del software y a pensar de forma matricial y paralela. Considero que estos conceptos son aplicables a mi formación en Ingeniería en Inteligencia Artificial, ya que me permitieron traducir una suma teórica de términos en un sistema discreto, programable y con resultados visuales directos.
+
+\subsection{Conclusión — Magaly López Castro}
+\label{sec:cap02:concl:magaly}
+
+El desarrollo de esta fase del proyecto representó un cambio de paradigma interesante en la forma en que abordo los problemas matemáticos. Estando en ESCOM la carga de matemáticas suele ser pesada y, como estudiante enfocada en Inteligencia Artificial, estoy muy acostumbrada a resolver retos mediante el desarrollo de software puro, implementando algoritmos en C++ o Python, o buscando la máxima optimización de código para competencias. Por eso, tener que trasladar el análisis matemático de la serie de Fourier a una herramienta ofimática como Excel fue, al principio, una experiencia sumamente extraña.
+
+En la programación tradicional suelo utilizar ciclos repetitivos o librerías específicas para procesar cálculos masivos. Sin embargo, estructurar este problema computacionalmente en una hoja de cálculo —armando la matriz de resultados columna por columna para iterar desde $n=1$ hasta $n=10$— me obligó a entender la serie desde otra perspectiva. Fue la primera vez que dejé de ver a Fourier como un ejercicio de ``talacha'' manual de integrales y despejes en el cuaderno, para convertirlo en una evaluación dinámica de miles de puntos.
+
+Esta experiencia me demostró que herramientas como Excel son muy valiosas para visualizar la convergencia matemática sin tanta abstracción. Ver cómo la sumatoria de las celdas lograba que la curva de la aproximación se acercara paso a paso a mi función original $5x^3 - 3x^2 + 1$ hizo que los coeficientes $a_n$ y $b_n$ dejaran de ser simples números en un papel para convertirse en elementos gráficos con peso real.
+
+Además, este ejercicio computacional me permitió reflexionar sobre la importancia del procesamiento de señales en mi carrera. La idea de reconstruir una señal compleja mediante sumas controladas es la misma base que se utiliza hoy en día para el procesamiento de imágenes digitales y la visión artificial. Al final, estructurar la serie de Fourier en una matriz tabular no sólo agilizó el cálculo, sino que transformó un concepto que antes veía como un obstáculo puramente analítico en un algoritmo gráfico, ayudándome a conectar la teoría matemática con el cómputo práctico que utilizo en mi día a día.
+
+\subsection{Conclusión — Lino Ehecatl Romero Rosales}
+\label{sec:cap02:concl:lino}
+
+Esta parte del proyecto me pareció muy interesante porque pasamos de hacer puros cálculos matemáticos y resolver integrales, a ver realmente cómo se comporta la serie de Fourier de forma visual. No creía que fuera posible llegar a graficarla en Excel, pero una vez que definí bien mis columnas y el tamaño de iteraciones para $x$ me di cuenta de lo útil que es esta herramienta para automatizar todo el proceso. Fue muy entretenido comprobar que los coeficientes $a_n$ y $b_n$ que sacamos de nuestra fórmula e integrales funcionaban al meterlos en la ecuación.
+
+La parte que más me ayudó a comprender el tema fue construir la matriz con iteraciones. Cuando resuelves las ecuaciones de forma teórica no se logra apreciar qué significa cada término de la sumatoria, pero al ir programando columna por columna en la hoja de cálculo pude notar cómo cada armónica nueva que agregábamos iba corrigiendo un poco más la curva. Además, fue una ventaja que mi función fuera par, ya que al saber que los términos del seno valían cero la matriz quedó mucho más limpia y fue más rápido cancelar $b_n$ y trabajar únicamente con los cosenos.
+
+Al momento de graficar y sobreponer la aproximación con la función original llegué a comprender de una mejor manera el concepto de convergencia. Me sorprendió bastante ver que, con sólo usar diez iteraciones, la parte del centro de la parábola quedaba casi emparejada de forma exacta. Sin embargo, también fue un gran apoyo para notar directamente en la gráfica que en los extremos del intervalo, acercándonos a $-\pi$ y $\pi$, a la serie todavía se le dificultaba un poco igualar a la original, dejando esa pequeña desviación.
+
+Como conclusión general, esta experiencia me demostró que herramientas como Excel son útiles para nuestra carrera y que no son sólo hojas para hacer cálculos, sino que podemos conseguir aproximaciones para graficar o modificar las ondas. Durante esta actividad se me permitió comprobar cómo aplicar la teoría para digitalizar señales y obtener una perspectiva más real. Me llevo como aprendizaje que la serie de Fourier no es sólo construir señales a base de integrales, sino también poder digitalizarlas, y que si en un futuro necesitamos más precisión en los extremos bastará con arrastrar la fórmula para agregar más iteraciones y hacer que el error sea casi invisible.
+
+\subsection{Conclusión — Aarón Ugalde Téllez}
+\label{sec:cap02:concl:aaron}
+
+% NOTA: borrador. Esta conclusión es una reflexión personal; ajústala
+% para que corresponda a tu experiencia real antes de entregar.
+
+Lo que más me marcó de esta fase fue descubrir que el término más pequeño de mi función era el que mandaba en el resultado. A simple vista, $\frac{1}{3}x$ parecía despreciable frente al $-\frac{5}{6}x^{2}$ que domina la forma de la parábola, y sin embargo fue ese sumando el que determinó casi todo el comportamiento de la serie: es el que impide que la función sea par, el que obliga a calcular los coeficientes $b_n$ y el que rompe la continuidad de la extensión periódica en los extremos del intervalo.
+
+Al comparar mi caso con el de mis compañeros esto quedó mucho más claro. La función de Lino es par y su matriz quedó limpia, con los senos cancelados; la de Said es impar y sólo necesitó los senos. La mía no tiene ninguna de las dos simetrías, así que tuve que arrastrar las dos familias de coeficientes en la misma hoja. Esa incomodidad resultó ser la parte más instructiva, porque me obligó a entender qué aporta cada familia en lugar de aplicar una plantilla.
+
+El detalle que no esperaba fue el de la velocidad de convergencia. Los coeficientes $a_n$ decaen como $1/n^{2}$ y los $b_n$ apenas como $1/n$, de modo que al décimo armónico los primeros ya son prácticamente insignificantes mientras que los segundos siguen aportando. Ver esa diferencia en la tabla explicó por qué agregar más términos mejora tan poco el ajuste en los bordes: no es que la serie esté mal calculada, es que la parte que falta converge lentamente por naturaleza.
+
+Trabajar esto en una hoja de cálculo en lugar de escribir un programa también cambió mi manera de verlo. Estoy acostumbrado a resolver este tipo de problemas con un ciclo que recorre los armónicos, donde el resultado aparece de golpe al final. En Excel la matriz está toda a la vista al mismo tiempo: cada columna es un armónico y se puede observar su contribución individual antes de sumarla. Esa visibilidad hizo evidente algo que un ciclo esconde, y es que la serie de Fourier no es una fórmula que se evalúa, sino una acumulación de correcciones sucesivas sobre una aproximación cada vez mejor.

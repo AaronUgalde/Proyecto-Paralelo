@@ -28,6 +28,10 @@
         {\TamSeccion \textcolor{guindaIPN}{\MakeUppercase{\Institucion}}\par}
         \vspace{0.4cm}
         {\TamSubseccion \textcolor{azulESCOM}{\MakeUppercase{\Escuela}}\par}
+        \ifthenelse{\equal{\Carrera}{}}{}{%
+            \vspace{0.25cm}
+            {\TamTexto \textcolor{azulESCOM}{\Carrera}\par}%
+        }
     \end{minipage}%
     \begin{minipage}{0.22\textwidth}
         \centering

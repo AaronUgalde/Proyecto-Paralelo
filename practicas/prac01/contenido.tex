@@ -1,0 +1,1457 @@
+% =====================================================================
+%  Práctica 1 — contenido
+%
+%  Sólo el cuerpo de la práctica: sin preámbulo, sin \begin{document},
+%  sin portada, sin índices y sin bibliografía (los pone el documento
+%  contenedor: practicas/prac01.tex). Todos los paquetes que usa este
+%  archivo (graphicx, float, listings, enumitem, ifthen/\IfFileExists)
+%  ya están cargados por config/preambulo.tex — no los vuelvas a cargar
+%  aquí, causaría conflictos.
+%
+%  IMPORTANTE: las prácticas son ENTREGAS INDEPENDIENTES del libro.
+%  Este archivo NUNCA se incluye en libro.tex ni en capitulos/capNN.
+%
+%  Convenciones:
+%   * Figuras en practicas/prac01/figuras/ (varias se conservaron con su
+%     nombre original —captura_*.png, 1.png…15.png, clear.png…— porque
+%     ya venían así de las entregas individuales; las que traían
+%     espacios en el nombre se renombraron a lino-*.jpeg / magaly-*.png
+%     porque \includegraphics no las localiza con espacios).
+%   * Etiquetas: fig:prac01:..., sec:prac01:...
+%   * Referencias: \cite{clave} usando las claves de bib/referencias.bib
+%
+%  ORIGEN DEL CONTENIDO — este archivo fusiona las cuatro entregas
+%  individuales del equipo. La autoría de cada bloque está marcada con
+%  comentarios y en el propio texto:
+%   * Aarón Ugalde Téllez        (macOS)   — parte ya presente antes
+%   * Said Carbot Cruz Trejo     (macOS)   — paralelo_2_said/main.tex
+%   * Magaly López Castro        (Ubuntu)  — TLN_practica1/main.tex
+%   * Lino Ehecatl Romero Rosales(Ubuntu)  — practica_comandos.tex
+% =====================================================================
+
+\chapter{\TituloPracUno}
+\label{prac:01}
+
+\section{Resumen}
+\label{sec:prac01:resumen}
+
+Esta práctica documenta la instalación de GNU/Linux y la exploración de su entorno de trabajo como plataforma de desarrollo para la materia de Cómputo Paralelo. El equipo investigó trece temas de marco teórico relacionados con virtualización, distribuciones, tipos de usuario, rutas y redireccionamiento, entre otros. Dos integrantes instalaron una distribución GNU/Linux sobre equipos con Windows —uno mediante una máquina virtual y otro directamente en una partición física del disco duro—, mientras que los otros dos, con equipos Apple Silicon y macOS, documentaron su entorno de trabajo señalando los comandos equivalentes utilizados. Sobre esas plataformas se probaron cuarenta comandos de administración y desarrollo repartidos entre los cuatro integrantes, y se resolvieron los ejercicios finales de la práctica: manejo de rutas absolutas y relativas, borrado con comodines, redireccionamiento, instalación de software, jerarquía de directorios, alta y baja de un usuario en sesión, y la compilación de un programa en lenguaje C usando distintos editores de texto.
+
+\section{Introducción}
+\label{sec:prac01:introduccion}
+
+GNU/Linux es una de las plataformas más utilizadas en el desarrollo de software, la administración de sistemas y, particularmente, en el cómputo de alto rendimiento y paralelo, donde predomina sobre otros sistemas operativos en clústeres y supercomputadoras. Por ello, contar con un entorno de trabajo en GNU/Linux, ya sea instalado directamente o mediante virtualización, resulta indispensable antes de abordar los temas centrales de la materia: programación con memoria compartida, memoria distribuida y cómputo en GPU, que en su mayoría se ejecutan y evalúan desde la línea de comandos.
+
+Esta práctica busca que el equipo se familiarice con la instalación de GNU/Linux, con su terminal y con los comandos básicos de administración de archivos, procesos y usuarios, sentando así las bases prácticas que se usarán durante el resto del semestre. Dado que el equipo cuenta con equipos con arquitecturas y sistemas operativos distintos (macOS en equipos Apple Silicon y Windows), la práctica se abordó desde dos enfoques complementarios: la instalación real del sistema en los equipos que lo permitían y la exploración de un entorno de trabajo equivalente en los que no. La sección \ref{sec:prac01:instalacion} detalla cómo se dividió esta parte entre los integrantes del equipo.
+
+\section{Marco teórico (temas asignados)}
+\label{sec:prac01:marco-teorico}
+
+Los trece temas de investigación que pide el guion de la práctica se repartieron entre los cuatro integrantes del equipo. Las subsecciones siguientes agrupan los temas asignados a cada quien, comenzando por los de Aarón, que sientan las bases sobre virtualización y distribuciones necesarias para entender por qué el equipo terminó trabajando en dos entornos distintos, tal como se detalla en la sección \ref{sec:prac01:instalacion}.
+
+% ---------------------------------------------------------------------
+%  Temas de Aarón Ugalde Téllez
+% ---------------------------------------------------------------------
+
+\subsection{Máquinas virtuales}
+Una máquina virtual (VM, por sus siglas en inglés) es una representación o emulación por software de una computadora física. Permite ejecutar un sistema operativo invitado sobre una máquina física denominada sistema anfitrión, compartiendo recursos como procesador, memoria, almacenamiento y red. La capa de software encargada de administrar estos recursos y aislar las máquinas virtuales se denomina hipervisor \cite{ibmvm}.
+
+Las máquinas virtuales son útiles en el desarrollo y aprendizaje porque permiten instalar diferentes sistemas operativos sin modificar necesariamente el sistema operativo principal del equipo. Además, facilitan la creación de entornos aislados, la realización de pruebas y la reproducción de configuraciones de software. Para esta práctica resultan especialmente útiles porque permiten disponer de GNU/Linux en un equipo cuyo sistema operativo principal es macOS.
+
+Existen dos enfoques principales de virtualización. En la virtualización de tipo 1, el hipervisor se ejecuta directamente sobre el hardware; en la de tipo 2, el hipervisor se ejecuta sobre un sistema operativo convencional. En una computadora personal es común utilizar software de virtualización de tipo 2.
+
+\subsection{Distribuciones de GNU/Linux}
+GNU/Linux no se distribuye normalmente como un único sistema operativo con una sola configuración. Una distribución de GNU/Linux combina el kernel Linux con programas de usuario, bibliotecas, herramientas administrativas, gestores de paquetes, configuraciones y repositorios. Cada distribución puede tener diferentes objetivos, herramientas y ciclos de actualización \cite{redhatdistro}.
+
+Entre las distribuciones más conocidas se encuentran Ubuntu, Debian, Fedora, Arch Linux, openSUSE y Linux Mint. Por ejemplo, Ubuntu está orientada a facilitar la instalación y el uso general del sistema; Fedora incorpora tecnologías relativamente recientes y mantiene una estrecha relación con el ecosistema de Red Hat; Debian destaca por su estabilidad y por la gran cantidad de paquetes disponibles; y Arch Linux busca proporcionar un sistema altamente personalizable.
+
+Las distribuciones también pueden clasificarse según su propósito. Existen distribuciones de escritorio, de servidor, especializadas en seguridad informática, multimedia, educación, sistemas embebidos, entre otras. La elección depende de las necesidades del usuario, del hardware disponible y del software que se requiera ejecutar.
+
+\subsection{Requisitos de instalación del sistema operativo GNU/Linux}
+Los requisitos de instalación dependen de la distribución, la versión y el entorno de escritorio seleccionado. Como referencia, la documentación oficial de Ubuntu Desktop indica actualmente un procesador de al menos 2 GHz de dos núcleos, 6 GB de memoria RAM y 25 GB de espacio libre en disco; también recomienda disponer de una conexión a Internet durante la instalación \cite{ubuntuinstall}.
+
+Cuando GNU/Linux se instala dentro de una máquina virtual, además de los requisitos del sistema invitado, la computadora anfitriona debe tener recursos suficientes para ejecutar simultáneamente ambos sistemas. Por ello, es necesario considerar la memoria RAM, los núcleos de CPU y el almacenamiento que se asignarán a la máquina virtual. También debe verificarse la arquitectura del procesador, especialmente en equipos modernos con procesadores Apple Silicon, ya que la imagen de GNU/Linux debe ser compatible con la arquitectura utilizada por la máquina virtual.
+
+Antes de instalar el sistema es recomendable comprobar el espacio disponible en disco, descargar una imagen ISO oficial de la distribución, verificar que la arquitectura sea compatible y mantener un respaldo de los datos importantes. En una instalación virtual no es necesario modificar las particiones físicas del sistema anfitrión, aunque el archivo que representa el disco virtual sí ocupará espacio en el almacenamiento del equipo.
+
+\subsection{Estadísticas de uso del sistema operativo GNU/Linux en el mundo}
+Las estadísticas de uso dependen de qué dispositivos se consideren. De acuerdo con StatCounter, durante agosto de 2026 Linux representó aproximadamente el 8.88\% del mercado mundial de sistemas operativos de escritorio \cite{statcounterdesktop}. Este valor corresponde específicamente a la categoría de escritorio y, por lo tanto, es más apropiado para comparar el uso de GNU/Linux en computadoras personales.
+
+Cuando se consideran dispositivos de manera más amplia, StatCounter reportó para agosto de 2026 una participación de Linux de 3.76\% en su categoría global de sistemas operativos, mientras que Android, iOS, Windows y macOS aparecen como categorías separadas \cite{statcounterworld}. Por esta razón, la cifra puede ser muy diferente de la observada exclusivamente en computadoras de escritorio.
+
+Las cifras deben interpretarse como estimaciones del uso observado en la web y no como un censo exacto de todas las computadoras existentes. Aun con esta limitación, muestran que Linux mantiene una presencia relevante en computadoras de escritorio y es especialmente importante en servidores, supercomputación, sistemas embebidos, infraestructura en la nube y entornos de desarrollo.
+
+% ---------------------------------------------------------------------
+%  Temas de Lino Ehecatl Romero Rosales
+% ---------------------------------------------------------------------
+
+\subsection{Escritorios GNOME y KDE}
+El ecosistema de GNU/Linux se caracteriza por su flexibilidad, permitiendo a los usuarios interactuar con el sistema operativo a través de diversas interfaces adaptadas a diferentes necesidades. Los entornos de escritorio proporcionan la base visual del sistema \cite{garrels:intro-linux:2008}.
+
+Entre los más destacados se encuentra GNOME, el cual se enfoca en la simplicidad, la productividad sin distracciones y un diseño moderno que facilita una experiencia de usuario fluida e intuitiva. Como contraparte, KDE (a través de su entorno KDE Plasma) es ampliamente reconocido por su alta capacidad de personalización visual y funcionalidad. Este entorno presenta una disposición más clásica, similar a la de los sistemas operativos comerciales, y permite modificar temas, \textit{widgets} y efectos gráficos a un nivel profundo, brindando al usuario un control total sobre su espacio de trabajo \cite{negus:linux-bible:2020}.
+
+\subsection{Entornos \textit{Command Line Interface} y \textit{Graphical User Interface}}
+La interacción humano-computadora en sistemas GNU/Linux se divide principalmente en dos paradigmas. Por un lado, la interfaz gráfica de usuario (GUI, \textit{Graphical User Interface}) estructura el entorno visual mediante ventanas, botones, menús y el uso del ratón. Su objetivo principal es hacer accesible el uso cotidiano del sistema sin requerir que el usuario memorice comandos específicos \cite{garrels:intro-linux:2008}.
+
+Por otro lado, la interfaz de línea de comandos (CLI, \textit{Command Line Interface}) representa el entorno fundamental para la administración avanzada, el desarrollo de software y el cómputo paralelo \cite{shotts:linux-command-line:2019}. La CLI es un entorno basado exclusivamente en texto que se distingue por su alta eficiencia, su bajo consumo de recursos de hardware y su facilidad para la automatización de procesos complejos mediante la programación de \textit{scripts}. Esta última característica es la que la vuelve indispensable en el contexto de la materia: los trabajos de cómputo paralelo se lanzan, se miden y se repiten desde la terminal.
+
+\subsection{Terminal de GNU/Linux}
+Para acceder a la línea de comandos desde un entorno gráfico, los usuarios recurren a la terminal de GNU/Linux (o emulador de terminal). Esta aplicación funciona como el puente directo entre el usuario y el intérprete de comandos, que habitualmente es Bash (\textit{Bourne Again Shell}) \cite{shotts:linux-command-line:2019}.
+
+A través de la terminal es posible enviar instrucciones directas al sistema operativo: administrar procesos en tiempo real, compilar código fuente en lenguajes como C o Python y manipular el árbol de directorios de manera precisa. Esto la convierte en una herramienta indispensable para cualquier administrador de sistemas o desarrollador \cite{ward:how-linux-works:2021}. En la mayoría de las distribuciones con entorno gráfico, la terminal se abre con la combinación de teclas \texttt{Ctrl+Alt+T}.
+
+% ---------------------------------------------------------------------
+%  Temas de Said Carbot Cruz Trejo
+% ---------------------------------------------------------------------
+
+\subsection{Clasificación de los comandos en GNU/Linux}
+\label{sec:prac01:clasificacion-comandos}
+Los comandos de GNU/Linux se pueden clasificar desde dos enfoques principales. Desde un enfoque funcional, se agrupan en categorías como manejo de archivos, administración de procesos, gestión de usuarios, monitoreo del sistema y utilidades de red. Esta clasificación ayuda a entender mejor el propósito de cada comando y su uso en la administración de sistemas operativos tipo Unix \cite{nemeth:unix-linux-admin:2017}.
+
+Por otro lado, desde el punto de vista de su ejecución por parte del intérprete de comandos (shell), se dividen en:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Comandos internos (\textit{built-ins}):} están integrados directamente en el shell y se ejecutan rápidamente sin necesidad de iniciar un nuevo proceso (por ejemplo \texttt{cd}, \texttt{pwd}, \texttt{echo}).
+    \item \textbf{Comandos externos:} son archivos ejecutables o binarios almacenados en el sistema de directorios (usualmente en \texttt{/bin} o \texttt{/usr/bin}). Para ejecutarlos, el shell localiza el archivo e inicia un nuevo proceso (por ejemplo \texttt{ls}, \texttt{mkdir}, \texttt{date}).
+    \item \textbf{Alias:} nombres alternativos o atajos que el usuario define para ejecutar comandos más largos o con parámetros específicos por defecto.
+\end{itemize}
+
+\subsection{Variables de entorno}
+Las variables de entorno son parámetros o valores dinámicos con nombre que el sistema operativo y el shell utilizan para definir el entorno en el que se ejecutan los distintos procesos. Se utilizan para definir y afectar comportamientos fundamentales, tales como las rutas de búsqueda para comandos, el idioma, el usuario activo y las preferencias del sistema \cite{shotts:linux-command-line:2019}.
+
+Ejemplos comunes incluyen \texttt{\$PATH} (lista de directorios donde el sistema busca los comandos externos), \texttt{\$USER} (nombre del usuario actual) y \texttt{\$HOME} (ruta de la carpeta personal del usuario).
+
+\subsection{Comandos básicos de GNU/Linux}
+Los comandos básicos son fundamentales para la administración y operación diaria en GNU/Linux. Herramientas como \texttt{clear}, \texttt{apt}, \texttt{rm} e \texttt{ifconfig} cumplen funciones específicas clave: limpiar la terminal, gestionar paquetes, eliminar archivos y revisar la configuración de red, respectivamente \cite{sobell:practical-guide-linux:2017}.
+
+A continuación se resume el funcionamiento de un subconjunto de los comandos utilizados durante esta práctica:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{\texttt{cal}:} muestra en la terminal un calendario del mes actual o de un año específico.
+    \item \textbf{\texttt{date}:} muestra la fecha y hora actual del reloj del sistema. También permite configurarla si se tienen permisos de superusuario.
+    \item \textbf{\texttt{echo}:} imprime en la pantalla (salida estándar) las cadenas de texto o variables que se le pasen como argumentos.
+    \item \textbf{\texttt{time}:} mide el tiempo que tarda en ejecutarse un proceso, desglosando el tiempo real, el tiempo de CPU del usuario y el tiempo de CPU del sistema.
+    \item \textbf{\texttt{uname}:} imprime información básica sobre el sistema operativo y el hardware, como el nombre del kernel, la versión y la arquitectura de la máquina.
+    \item \textbf{\texttt{w}:} muestra qué usuarios están conectados actualmente al sistema y los procesos exactos que está ejecutando cada uno.
+    \item \textbf{\texttt{who}:} lista los usuarios que han iniciado sesión, detallando su nombre, línea de terminal y la hora de conexión.
+    \item \textbf{\texttt{bash}:} inicia una nueva sesión del intérprete de comandos \textit{Bourne Again SHell}.
+    \item \textbf{\texttt{wc}:} cuenta e imprime la cantidad de líneas, palabras y bytes o caracteres que contiene un flujo de texto o un archivo.
+    \item \textbf{\texttt{apt-get}:} utilidad de línea de comandos para la gestión de paquetes en distribuciones basadas en Debian; sirve para instalar, actualizar y eliminar software.
+\end{itemize}
+
+% ---------------------------------------------------------------------
+%  Temas de Magaly López Castro
+% ---------------------------------------------------------------------
+
+\subsection{Tipos de usuario en GNU/Linux}
+En los sistemas operativos basados en GNU/Linux, la seguridad y el control de acceso se fundamentan en un esquema multiusuario estricto. Cada proceso y archivo está asociado a un propietario, lo que permite aislar entornos y proteger el sistema. Existen tres categorías principales de usuarios \cite{nemeth:unix-linux-admin:2017}:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Superusuario (\textit{root}):} es el administrador absoluto del sistema, cuyo identificador de usuario (UID) es 0. Tiene acceso irrestricto a todos los archivos, comandos y configuraciones de red, por lo que su uso directo se reserva exclusivamente para tareas críticas de mantenimiento.
+    \item \textbf{Usuarios estándar o regulares:} son las cuentas creadas para personas físicas (generalmente con un UID a partir del 1000). Tienen un directorio personal (\texttt{/home/usuario}) y permisos limitados. No pueden modificar archivos del sistema a menos que escalen privilegios temporalmente mediante utilidades como \texttt{sudo}.
+    \item \textbf{Usuarios del sistema:} tienen un UID bajo (usualmente del 1 al 999) y no están diseñados para que una persona inicie sesión. Se utilizan para ejecutar demonios y servicios en segundo plano (como servidores web o bases de datos) de forma aislada, minimizando riesgos de seguridad en caso de que un servicio sea vulnerado \cite{shotts:linux-command-line:2019}.
+\end{itemize}
+
+\subsection{Rutas relativas y absolutas}
+\label{sec:prac01:rutas-teoria}
+El sistema de archivos de GNU/Linux sigue una estructura de árbol invertido que nace de un único directorio raíz (\texttt{/}). Para navegar por este árbol y ubicar archivos, se utilizan dos tipos de rutas \cite{shotts:linux-command-line:2019}:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Rutas absolutas:} describen la ubicación exacta de un archivo o directorio comenzando siempre desde el directorio raíz (\texttt{/}). Independientemente de dónde se encuentre el usuario en ese momento, una ruta absoluta siempre apuntará al mismo destino (por ejemplo, \texttt{/var/log/syslog}).
+    \item \textbf{Rutas relativas:} describen la ubicación de un elemento partiendo del directorio de trabajo actual del usuario. No comienzan con una barra inclinada (\texttt{/}). Suelen apoyarse en los directorios especiales \texttt{.} (directorio actual) y \texttt{..} (directorio padre). Por ejemplo, si el usuario está en \texttt{/home/usuario}, la ruta relativa \texttt{../documentos} lo llevará a \texttt{/home/documentos}.
+\end{itemize}
+
+En la sección \ref{sec:prac01:rutas-ejemplos} se retoman estos conceptos con ejemplos concretos solicitados en las instrucciones finales de la práctica.
+
+\subsection{Redireccionamiento}
+\label{sec:prac01:redir-teoria}
+Siguiendo la filosofía de diseño heredada de UNIX, en GNU/Linux ``todo es un archivo'', incluyendo los flujos de entrada y salida de datos \cite{mitchell:advanced-linux-prog:2001}. Todo comando ejecutado en la terminal abre automáticamente tres flujos de datos estándar: entrada estándar (\textit{stdin}, descriptor 0), salida estándar (\textit{stdout}, descriptor 1) y error estándar (\textit{stderr}, descriptor 2).
+
+El redireccionamiento es el mecanismo que permite alterar el destino de estos flujos usando operadores especiales en la terminal \cite{shotts:linux-command-line:2019}:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Redirección de salida (\ensuremath{>} y \ensuremath{>>}):} permite enviar la salida estándar de un comando hacia un archivo en lugar de la pantalla. El operador \ensuremath{>} sobrescribe el archivo destino, mientras que \ensuremath{>>} añade el contenido al final del archivo existente.
+    \item \textbf{Redirección de entrada (\ensuremath{<}):} permite que un comando lea datos desde un archivo en lugar de esperar entrada del teclado.
+    \item \textbf{Redirección de errores (\texttt{2>}):} separa los mensajes de error de la salida normal, enviándolos a un archivo específico (por ejemplo, \texttt{comando 2> errores.log}). Para enviar tanto la salida normal como los errores al mismo archivo se suele utilizar la sintaxis \texttt{2>\&1}.
+\end{itemize}
+
+\section{Instalación de GNU/Linux y capturas del sistema}
+\label{sec:prac01:instalacion}
+
+El equipo trabajó desde dos tipos de equipo distintos, lo que dividió naturalmente esta sección en dos casos. Aarón y Said cuentan con equipos Apple Silicon con macOS como sistema operativo principal; dado que instalar GNU/Linux de forma nativa no era viable en su hardware sin recurrir a virtualización adicional, documentan en su lugar el entorno de trabajo de macOS desde el que resolvieron el resto de la práctica. Magaly y Lino, en cambio, parten de equipos con Windows y sí realizaron la instalación completa de una distribución de GNU/Linux, cada uno por una vía distinta: Magaly mediante una máquina virtual y Lino directamente sobre una partición física del disco duro. Las cuatro subsecciones siguientes documentan por separado el proceso y las capturas de cada integrante.
+
+\subsection{Entorno de trabajo de Aarón Ugalde Téllez (macOS)}
+
+Como se explicó en la sección \ref{sec:prac01:marco-teorico}, virtualizar GNU/Linux en un equipo Apple Silicon exige verificar que la imagen del sistema sea compatible con la arquitectura del procesador; al no contar con una imagen ARM lista para esta práctica, se optó por documentar el entorno de macOS y resolver los comandos asignados sobre él, señalando explícitamente los equivalentes utilizados en cada caso. A continuación se muestran capturas del escritorio y la terminal de macOS empleados durante la práctica.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_macos_escritorio.png}
+        {\includegraphics[width=0.75\textwidth]{captura_macos_escritorio.png}}
+        {\fbox{\parbox[c][5cm][c]{0.75\textwidth}{\centering Colocar aquí la captura del escritorio de macOS}}}
+    \caption{Escritorio del sistema operativo macOS utilizado durante la práctica.}
+    \label{fig:prac01:macos-escritorio}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_macos_terminal.png}
+        {\includegraphics[width=0.75\textwidth]{captura_macos_terminal.png}}
+        {\fbox{\parbox[c][5cm][c]{0.75\textwidth}{\centering Colocar aquí una captura de la terminal de macOS}}}
+    \caption{Terminal del sistema operativo macOS utilizada para realizar las actividades.}
+    \label{fig:prac01:macos-terminal}
+\end{figure}
+
+\subsection{Entorno de trabajo de Said Carbot Cruz Trejo (macOS)}
+
+Said trabajó en las mismas condiciones que Aarón: un equipo Apple Silicon con macOS, sin instalación de GNU/Linux. La siguiente captura documenta el sistema operativo utilizado como entorno de trabajo para el resto de la práctica.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/a.png}
+        {\includegraphics[width=0.75\textwidth]{a.png}}
+        {\fbox{\parbox[c][5cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Captura del sistema operativo utilizado como entorno de trabajo.}
+    \label{fig:prac01:instalacion-said}
+\end{figure}
+
+\subsection{Instalación de GNU/Linux de Magaly López Castro (máquina virtual)}
+
+Magaly instaló GNU/Linux sobre su equipo con Windows utilizando una máquina virtual, siguiendo el enfoque de virtualización de tipo 2 descrito en la sección \ref{sec:prac01:marco-teorico}. A continuación se documenta el proceso completo: descarga de la imagen, instalación del sistema y verificación del resultado final.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/magaly-descarga.png}
+        {\includegraphics[width=0.6\textwidth]{magaly-descarga.png}}
+        {\fbox{\parbox[c][5cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Descarga del software de instalación.}
+    \label{fig:prac01:descarga}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/magaly-instalacion.jpeg}
+        {\includegraphics[width=0.6\textwidth]{magaly-instalacion.jpeg}}
+        {\fbox{\parbox[c][5cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Proceso de instalación del sistema operativo.}
+    \label{fig:prac01:instalacion-proceso}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/magaly-resultado.png}
+        {\includegraphics[width=0.6\textwidth]{magaly-resultado.png}}
+        {\fbox{\parbox[c][5cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Resultado final: sistema GNU/Linux instalado y en funcionamiento.}
+    \label{fig:prac01:resultado}
+\end{figure}
+
+\subsection{Instalación de GNU/Linux de Lino Ehecatl Romero Rosales (partición física)}
+\label{sec:prac01:instalacion-particion}
+
+A diferencia de Magaly, Lino optó por instalar GNU/Linux directamente en una partición física del disco duro de su equipo con Windows, en lugar de hacerlo dentro de una máquina virtual, de modo que el sistema convive con Windows y se elige entre ambos al encender el equipo. A continuación se documenta el procedimiento completo, paso por paso.
+
+\subsubsection{Preparación de la memoria USB}
+Para realizar la instalación de GNU/Linux primero es necesario contar con una memoria USB libre de al menos 4 GB de capacidad. En este paso se verifica la capacidad real de la unidad y se respalda cualquier información que contenga, ya que el proceso de creación del medio de arranque borra por completo el contenido previo de la memoria: la imagen del sistema se escribe sobre el dispositivo sector por sector, no como un archivo más dentro del sistema de archivos existente.
+
+Conviene además conectar la memoria directamente a un puerto del equipo y no a través de un concentrador USB, porque algunos BIOS no reconocen como dispositivo de arranque las unidades conectadas de esa manera.
+
+\subsubsection{Creación de una partición en el disco duro}
+Como primer paso se debe crear una partición en el disco duro donde se instalará GNU/Linux. Para acceder a esta opción en Windows se hace clic derecho sobre el botón de inicio y se selecciona el apartado \textit{Administración de discos}.
+
+Posteriormente se debe asignar espacio del disco duro para crear la nueva partición. Para ello se hace clic derecho sobre la partición primaria y se selecciona la opción correspondiente para reducir o liberar espacio; el sistema mostrará la cantidad máxima de espacio que puede asignarse a la nueva partición. Es importante considerar que, mientras mayor sea el espacio utilizado en el disco duro, menor será la cantidad de espacio disponible que podrá asignarse a la nueva partición.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-inst-discos.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-inst-discos.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Herramienta \textit{Administración de discos} de Windows, con el espacio asignado a la partición destinada a GNU/Linux.}
+    \label{fig:prac01:administracion-discos}
+\end{figure}
+
+\subsubsection{Descarga de GNU/Linux y creación de la memoria \textit{booteable}}
+Como siguiente paso se descarga la distribución de GNU/Linux que se desea instalar desde la página oficial de la distribución seleccionada.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-inst-descarga.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-inst-descarga.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Descarga de la distribución de GNU/Linux seleccionada.}
+    \label{fig:prac01:descarga-linux}
+\end{figure}
+
+Una vez descargada la imagen del sistema operativo se utiliza la aplicación Rufus para crear una memoria USB \textit{booteable}. Esta herramienta escribe la imagen de GNU/Linux en la memoria USB para posteriormente iniciar el equipo desde ella y realizar la instalación del sistema operativo.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-inst-rufus.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-inst-rufus.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Creación de una memoria USB \textit{booteable} mediante Rufus.}
+    \label{fig:prac01:rufus}
+\end{figure}
+
+\subsubsection{Acceso al BIOS y configuración del arranque}
+Una vez preparada la memoria USB \textit{booteable} se debe acceder al BIOS o al menú de arranque de la computadora. Generalmente esto se realiza reiniciando el equipo y presionando una tecla específica durante el inicio, como \texttt{F2}, \texttt{F11} o \texttt{F12}, dependiendo del modelo y fabricante de la computadora.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-inst-bios.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-inst-bios.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Acceso al BIOS o menú de arranque del equipo.}
+    \label{fig:prac01:bios}
+\end{figure}
+
+Dentro del BIOS o del menú de arranque se selecciona la memoria USB como dispositivo de inicio, de modo que el equipo arranque desde ella en lugar de hacerlo desde el disco duro. En los equipos con UEFI suele ser necesario además desactivar el \textit{Secure Boot}, ya que de lo contrario el firmware rechaza el cargador de arranque de la distribución.
+
+Tras iniciar desde la memoria, el instalador de la distribución ofrece dos opciones: probar el sistema en modo \textit{live} (sin modificar el disco) o instalarlo. Al elegir la instalación, el paso decisivo es el del particionado: en lugar de aceptar la opción automática —que borraría el disco completo y con él la instalación de Windows— se elige la opción manual y se selecciona el espacio no asignado que se liberó en el paso anterior. Sobre ese espacio se crean la partición raíz (\texttt{/}) y, opcionalmente, la partición de intercambio (\textit{swap}), y se indica que el gestor de arranque GRUB se instale en el disco principal para que al encender el equipo aparezca el menú que permite elegir entre Windows y GNU/Linux.
+
+\subsubsection{Configuración inicial del sistema}
+Una vez finalizada la instalación se tiene acceso al sistema GNU/Linux y es posible comenzar a configurar el entorno de trabajo de acuerdo con las necesidades y preferencias del usuario.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-inst-escritorio.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-inst-escritorio.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Entorno de escritorio de GNU/Linux después de la instalación.}
+    \label{fig:prac01:escritorio-linux}
+\end{figure}
+
+\subsubsection{Actualización del sistema}
+Por último, es recomendable abrir la terminal con la combinación de teclas \texttt{Ctrl+Alt+T}. Desde ella se ejecutan los siguientes comandos para actualizar la información de los paquetes disponibles y actualizar los paquetes instalados en el sistema:
+
+\begin{lstlisting}
+sudo apt-get update
+sudo apt-get upgrade
+\end{lstlisting}
+
+De esta manera el sistema se mantiene actualizado con las versiones y paquetes más recientes disponibles en los repositorios.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-inst-actualizacion.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-inst-actualizacion.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Actualización del sistema mediante la terminal.}
+    \label{fig:prac01:actualizacion-linux}
+\end{figure}
+
+\section{Comandos probados}
+\label{sec:prac01:comandos}
+
+Los comandos de la práctica se repartieron entre los integrantes del equipo. A continuación se describe cada comando asignado, su función dentro de GNU/Linux y la captura de su ejecución. Cuando el comando no existe de forma nativa en macOS se indica explícitamente el equivalente utilizado.
+
+% ---------------------------------------------------------------------
+%  Comandos probados por Aarón Ugalde Téllez (macOS)
+% ---------------------------------------------------------------------
+
+\subsection{Comandos asignados a Aarón Ugalde Téllez}
+
+Al trabajar sobre macOS, como se explicó en la sección \ref{sec:prac01:instalacion}, varios de los comandos de esta lista no existen de forma nativa; en esos casos se documenta también el equivalente utilizado en macOS.
+
+\subsubsection{\texttt{brew} (equivalente a \texttt{apt} en macOS)}
+En macOS, el comando \texttt{apt} no se utiliza porque es el gestor de paquetes característico de distribuciones GNU/Linux basadas en Debian. Como equivalente se utiliza \texttt{brew}, el gestor de paquetes Homebrew, que permite instalar y administrar software desde la terminal.
+
+Ejemplos:
+\begin{lstlisting}
+brew update
+brew install gimp
+brew uninstall gimp
+\end{lstlisting}
+
+Homebrew administra paquetes y aplicaciones desde la terminal. Dependiendo de la instalación y del tipo de operación, puede solicitar privilegios de administrador.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_brew.png}
+        {\includegraphics[width=0.75\textwidth]{captura_brew.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{brew}, equivalente utilizado en macOS para la administración de paquetes.}
+    \label{fig:prac01:brew}
+\end{figure}
+
+\subsubsection{\texttt{exit}}
+\texttt{exit} termina la sesión del shell actual. Si se ejecuta dentro de una terminal interactiva, normalmente cierra esa instancia de la terminal; en una sesión remota o dentro de otro shell también puede utilizarse para salir de dicha sesión.
+
+\begin{lstlisting}
+exit
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_exit.png}
+        {\includegraphics[width=0.75\textwidth]{captura_exit.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{exit}.}
+    \label{fig:prac01:exit}
+\end{figure}
+
+\subsubsection{\texttt{ps}}
+\texttt{ps} muestra información sobre los procesos que se están ejecutando en el sistema. Sin opciones, normalmente presenta información de los procesos asociados a la terminal actual.
+
+\begin{lstlisting}
+ps
+\end{lstlisting}
+
+Entre las columnas que pueden aparecer se encuentran el identificador del proceso (PID), la terminal asociada (TTY), el tiempo de CPU consumido y el comando que inició el proceso.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_ps.png}
+        {\includegraphics[width=0.75\textwidth]{captura_ps.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{ps}.}
+    \label{fig:prac01:ps}
+\end{figure}
+
+\subsubsection{\texttt{ps aux} (equivalente a \texttt{ps -fea} en macOS)}
+En macOS, la sintaxis \texttt{ps -fea} utilizada habitualmente en GNU/Linux no es la opción equivalente. Para obtener una vista amplia de los procesos de todos los usuarios se puede utilizar \texttt{ps aux}. Este comando muestra, entre otros datos, el usuario propietario, PID, porcentaje de CPU, porcentaje de memoria y el comando que ejecuta cada proceso.
+
+\begin{lstlisting}
+ps aux
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_ps_aux.png}
+        {\includegraphics[width=0.75\textwidth]{captura_ps_aux.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{ps aux}.}
+    \label{fig:prac01:ps-aux}
+\end{figure}
+
+\subsubsection{\texttt{man}}
+\texttt{man} permite consultar las páginas del manual del sistema para conocer la función, sintaxis, opciones y argumentos de un comando.
+
+\begin{lstlisting}
+man ls
+man ps
+\end{lstlisting}
+
+Para salir de una página de manual normalmente se presiona la tecla \texttt{q}. Este comando es una de las herramientas más importantes para aprender a utilizar correctamente las utilidades disponibles en GNU/Linux.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_man.png}
+        {\includegraphics[width=0.75\textwidth]{captura_man.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Consulta de una página de manual mediante \texttt{man}.}
+    \label{fig:prac01:man}
+\end{figure}
+
+\subsubsection{\texttt{cat}}
+\texttt{cat} se utiliza principalmente para mostrar el contenido de archivos de texto en la terminal. También puede concatenar varios archivos y enviar el resultado a la salida estándar.
+
+\begin{lstlisting}
+cat archivo.txt
+cat archivo1.txt archivo2.txt
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_cat.png}
+        {\includegraphics[width=0.75\textwidth]{captura_cat.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{cat}.}
+    \label{fig:prac01:cat}
+\end{figure}
+
+\subsubsection{\texttt{fg}}
+\texttt{fg} significa ``foreground'' y se utiliza para devolver a primer plano un proceso que se encuentra suspendido o ejecutándose en segundo plano dentro del shell actual. Por ejemplo, después de suspender un proceso con \texttt{Ctrl+Z} y dejarlo en segundo plano, puede utilizarse \texttt{fg} para continuar trabajando con él en primer plano.
+
+\begin{lstlisting}
+fg
+\end{lstlisting}
+
+También puede seleccionarse un trabajo específico mediante su número, por ejemplo \texttt{fg \%1}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_fg.png}
+        {\includegraphics[width=0.75\textwidth]{captura_fg.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{fg}.}
+    \label{fig:prac01:fg}
+\end{figure}
+
+\subsubsection{\texttt{cd}}
+\texttt{cd} significa ``change directory'' y permite cambiar el directorio de trabajo actual de la terminal.
+
+\begin{lstlisting}
+cd Documentos
+cd /home/usuario/Documentos
+cd ..
+cd ~
+\end{lstlisting}
+
+\texttt{cd ..} sube al directorio padre y \texttt{cd \~{}} lleva al directorio personal del usuario.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_cd.png}
+        {\includegraphics[width=0.75\textwidth]{captura_cd.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Uso del comando \texttt{cd} para cambiar de directorio.}
+    \label{fig:prac01:cd}
+\end{figure}
+
+\subsubsection{\texttt{ls}}
+\texttt{ls} muestra el contenido del directorio indicado. Sin argumentos, lista los archivos y directorios del directorio de trabajo actual.
+
+\begin{lstlisting}
+ls
+ls Documentos
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_ls.png}
+        {\includegraphics[width=0.75\textwidth]{captura_ls.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{ls}.}
+    \label{fig:prac01:ls}
+\end{figure}
+
+\subsubsection{\texttt{ls -la}}
+\texttt{ls -la} muestra el contenido del directorio en un formato detallado e incluye también los archivos ocultos. La opción \texttt{-l} presenta información adicional, como permisos, propietario, grupo, tamaño y fecha de modificación; la opción \texttt{-a} incluye archivos cuyo nombre comienza con un punto.
+
+\begin{lstlisting}
+ls -la
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/captura_ls_la.png}
+        {\includegraphics[width=0.75\textwidth]{captura_ls_la.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{ls -la}.}
+    \label{fig:prac01:ls-la}
+\end{figure}
+
+% ---------------------------------------------------------------------
+%  Comandos probados por Said Carbot Cruz Trejo (macOS)
+% ---------------------------------------------------------------------
+
+\subsection{Comandos asignados a Said Carbot Cruz Trejo}
+
+Al igual que Aarón, Said trabajó sobre macOS, por lo que su lista incluye comandos nativos de este sistema junto con el caso de \texttt{apt-get}, que no existe en macOS y se documenta usando Homebrew como equivalente.
+
+\subsubsection{\texttt{cal}}
+\textbf{Explicación:} este comando se utiliza para mostrar un calendario en la terminal.
+
+\textbf{Descripción de la salida:} en la pantalla se observa un pequeño bloque de texto que dibuja el calendario del mes en curso, ordenado por semanas, donde el día actual aparece resaltado o subrayado.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/1.png}
+        {\includegraphics[width=0.75\textwidth]{1.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{cal} mostrando el calendario del mes actual.}
+    \label{fig:prac01:cal}
+\end{figure}
+
+\subsubsection{\texttt{date}}
+\textbf{Explicación:} muestra la fecha y la hora actual configurada en el reloj del sistema operativo.
+
+\textbf{Descripción de la salida:} la terminal imprime una sola línea de texto que contiene el día de la semana, el mes, el número de día, la hora exacta, la zona horaria y el año.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/2.png}
+        {\includegraphics[width=0.75\textwidth]{2.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{date} mostrando la fecha y hora del sistema.}
+    \label{fig:prac01:date}
+\end{figure}
+
+\subsubsection{\texttt{echo}}
+\textbf{Explicación:} imprime en la salida estándar la cadena de texto o variable que se le proporcione como argumento.
+
+\textbf{Descripción de la salida:} al ejecutar el comando con una frase, la terminal devuelve esa misma cadena de caracteres exacta en la línea inferior, sin comillas.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/3.png}
+        {\includegraphics[width=0.75\textwidth]{3.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{echo} imprimiendo una cadena de texto.}
+    \label{fig:prac01:echo}
+\end{figure}
+
+\subsubsection{\texttt{time}}
+\textbf{Explicación:} sirve para medir el tiempo que tarda un comando o proceso específico en ejecutarse desde el inicio hasta el fin.
+
+\textbf{Descripción de la salida:} tras ejecutar un comando, la terminal arroja el resultado seguido de tres líneas de estadísticas de tiempo: \texttt{real}, \texttt{user} y \texttt{sys}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/4.png}
+        {\includegraphics[width=0.75\textwidth]{4.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{time} midiendo el tiempo de un proceso.}
+    \label{fig:prac01:time}
+\end{figure}
+
+\subsubsection{\texttt{uname}}
+\textbf{Explicación:} imprime información básica sobre el sistema operativo y el hardware de la máquina.
+
+\textbf{Descripción de la salida:} al ejecutar \texttt{uname -a} se imprime información que revela que el sistema es Darwin, junto con el nombre del equipo, la versión del kernel y la arquitectura.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/5.png}
+        {\includegraphics[width=0.75\textwidth]{5.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{uname} mostrando la información del sistema.}
+    \label{fig:prac01:uname}
+\end{figure}
+
+\subsubsection{\texttt{w}}
+\textbf{Explicación:} muestra quién está conectado al sistema en este momento y qué procesos exactos están ejecutando.
+
+\textbf{Descripción de la salida:} se despliega una tabla con columnas que detallan el nombre de usuario, la terminal usada, tiempos de inactividad y el comando en ejecución.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/6.png}
+        {\includegraphics[width=0.75\textwidth]{6.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{w} mostrando usuarios y procesos actuales.}
+    \label{fig:prac01:w}
+\end{figure}
+
+\subsubsection{\texttt{who}}
+\textbf{Explicación:} lista de forma simplificada a los usuarios que tienen una sesión iniciada en el sistema.
+
+\textbf{Descripción de la salida:} muestra una lista simple donde cada fila contiene el nombre del usuario, la terminal asignada y la fecha y hora de inicio de sesión.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/7.png}
+        {\includegraphics[width=0.75\textwidth]{7.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{who} listando las sesiones activas.}
+    \label{fig:prac01:who}
+\end{figure}
+
+\subsubsection{\texttt{bash}}
+\textbf{Explicación:} invoca el intérprete de comandos \textit{Bourne Again SHell}.
+
+\textbf{Descripción de la salida:} al consultar su información con \texttt{bash -{}-version}, la terminal imprime la versión específica instalada y los detalles de licencia.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/8.png}
+        {\includegraphics[width=0.75\textwidth]{8.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución de \texttt{bash} mostrando la versión del intérprete.}
+    \label{fig:prac01:bash}
+\end{figure}
+
+\subsubsection{\texttt{wc}}
+\textbf{Explicación:} se utiliza para contar líneas, palabras y bytes o caracteres dentro de un flujo de texto o un archivo.
+
+\textbf{Descripción de la salida:} la terminal devuelve tres números separados por espacios que representan el total de líneas, palabras y caracteres.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/9.png}
+        {\includegraphics[width=0.75\textwidth]{9.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{wc} contando líneas, palabras y caracteres.}
+    \label{fig:prac01:wc}
+\end{figure}
+
+\subsubsection{\texttt{apt-get}}
+\textbf{Explicación:} utilidad de gestión de paquetes en distribuciones GNU/Linux basadas en Debian.
+
+\textbf{Descripción de la salida:} se muestra el comportamiento en macOS, donde no existe de forma nativa y se usa Homebrew como equivalente.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/10.png}
+        {\includegraphics[width=0.75\textwidth]{10.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Intento de ejecución de \texttt{apt-get} en entorno macOS.}
+    \label{fig:prac01:apt-mac1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/11.png}
+        {\includegraphics[width=0.75\textwidth]{11.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Prueba de gestión de paquetes mediante Homebrew.}
+    \label{fig:prac01:apt-mac2}
+\end{figure}
+
+% ---------------------------------------------------------------------
+%  Comandos probados por Magaly López Castro (Ubuntu)
+% ---------------------------------------------------------------------
+
+\subsection{Comandos asignados a Magaly López Castro}
+
+A diferencia de Aarón y Said, Magaly ejecutó estos comandos directamente en la distribución de GNU/Linux instalada en su máquina virtual (sección \ref{sec:prac01:instalacion}), por lo que se comportan de forma nativa sin necesidad de equivalentes.
+
+\subsubsection{\texttt{clear}}
+\textbf{Función:} limpia la pantalla de la terminal, desplazando el historial hacia arriba \cite{manpages:clear:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/clear.png}
+        {\includegraphics[width=0.6\textwidth]{clear.png}}
+        {\fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{clear}.}
+    \label{fig:prac01:clear}
+\end{figure}
+
+\subsubsection{\texttt{ifconfig}}
+\textbf{Función:} muestra y configura los parámetros de las interfaces de red del sistema \cite{manpages:ifconfig:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/ifconfig.png}
+        {\includegraphics[width=0.6\textwidth]{ifconfig.png}}
+        {\fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{ifconfig}.}
+    \label{fig:prac01:ifconfig}
+\end{figure}
+
+\subsubsection{\texttt{df}}
+\textbf{Función:} muestra un informe del espacio libre y utilizado en los sistemas de archivos montados \cite{manpages:df:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/df.png}
+        {\includegraphics[width=0.6\textwidth]{df.png}}
+        {\fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{df}.}
+    \label{fig:prac01:df}
+\end{figure}
+
+\subsubsection{\texttt{du}}
+\textbf{Función:} estima y muestra el espacio en disco que ocupa un archivo o directorio específico \cite{manpages:du:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/du.png}
+        {\includegraphics[width=0.6\textwidth]{du.png}}
+        {\fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{du}.}
+    \label{fig:prac01:du}
+\end{figure}
+
+\subsubsection{\texttt{pstree}}
+\textbf{Función:} muestra los procesos en ejecución organizados en forma de árbol jerárquico \cite{manpages:pstree:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/pstree.png}
+        {\includegraphics[width=0.6\textwidth]{pstree.png}}
+        {\fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{pstree}.}
+    \label{fig:prac01:pstree}
+\end{figure}
+
+\subsubsection{\texttt{kill -1} (SIGHUP)}
+\textbf{Función:} envía la señal de colgado (\textit{hangup}) a un proceso, indicándole que recargue su configuración sin detenerse \cite{manpages:kill:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/kill1.png}
+        {\includegraphics[width=\textwidth]{kill1.png}}
+        {\fbox{\parbox[c][4cm][c]{\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{kill -1} (SIGHUP).}
+    \label{fig:prac01:kill1}
+\end{figure}
+
+\subsubsection{\texttt{kill -9} (SIGKILL)}
+\textbf{Función:} envía la señal de finalización forzada, terminando el proceso inmediatamente sin permitir rutinas de limpieza \cite{manpages:kill:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/kill9.png}
+        {\includegraphics[width=\textwidth]{kill9.png}}
+        {\fbox{\parbox[c][4cm][c]{\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{kill -9} (SIGKILL).}
+    \label{fig:prac01:kill9}
+\end{figure}
+
+\subsubsection{\texttt{trap -l}}
+\textbf{Función:} imprime una lista de todos los nombres y números de las señales soportadas por el sistema \cite{manpages:trap:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/trap.png}
+        {\includegraphics[width=0.6\textwidth]{trap.png}}
+        {\fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{trap -l}.}
+    \label{fig:prac01:trap}
+\end{figure}
+
+\subsubsection{\texttt{pwd}}
+\textbf{Función:} imprime la ruta absoluta del directorio de trabajo actual \cite{manpages:pwd:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/pwd.png}
+        {\includegraphics[width=0.6\textwidth]{pwd.png}}
+        {\fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{pwd}.}
+    \label{fig:prac01:pwd}
+\end{figure}
+
+\subsubsection{\texttt{su}}
+\textbf{Función:} cambia la sesión actual a la de otro usuario (por defecto, al superusuario o \textit{root}) \cite{manpages:su:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/su.png}
+        {\includegraphics[width=0.6\textwidth]{su.png}}
+        {\fbox{\parbox[c][4cm][c]{0.6\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{su}.}
+    \label{fig:prac01:su}
+\end{figure}
+
+\subsubsection{\texttt{sudo}}
+\textbf{Función:} permite a un usuario autorizado ejecutar un comando temporalmente con privilegios de administrador \cite{manpages:sudo:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/sudo.png}
+        {\includegraphics[width=\textwidth]{sudo.png}}
+        {\fbox{\parbox[c][4cm][c]{\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{sudo}.}
+    \label{fig:prac01:sudo}
+\end{figure}
+
+% ---------------------------------------------------------------------
+%  Comandos probados por Lino Ehecatl Romero Rosales (Ubuntu)
+% ---------------------------------------------------------------------
+
+\subsection{Comandos asignados a Lino Ehecatl Romero Rosales}
+
+Lino también trabajó directamente en GNU/Linux, instalado en la partición física de su equipo (sección \ref{sec:prac01:instalacion-particion}), por lo que estos comandos se ejecutaron igualmente de forma nativa.
+
+\subsubsection{\texttt{touch}}
+\textbf{Función:} crea archivos vacíos de forma rápida. Basta con escribir \texttt{touch} seguido del nombre deseado y el archivo se crea en el directorio donde se encuentra posicionada la terminal. Si el archivo ya existe, el comando actualiza su fecha de último acceso y modificación en lugar de sobrescribirlo.
+
+\begin{lstlisting}
+touch archivo.txt
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-cmd-touch.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-cmd-touch.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{touch}.}
+    \label{fig:prac01:touch}
+\end{figure}
+
+\subsubsection{\texttt{rm}}
+\textbf{Función:} elimina archivos o directorios. Debe utilizarse con cuidado, ya que el borrado es permanente: los archivos no se envían a una papelera de reciclaje como ocurre en el entorno gráfico. En la sección \ref{sec:prac01:rm-comodines} se detalla su uso combinado con comodines.
+
+\begin{lstlisting}
+rm archivo.txt
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-cmd-rm.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-cmd-rm.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{rm}.}
+    \label{fig:prac01:rm}
+\end{figure}
+
+\subsubsection{\texttt{mv}}
+\textbf{Función:} cumple dos propósitos. Por un lado mueve un archivo de una carpeta a otra; por otro, cuando el destino está en el mismo directorio, funciona para cambiar el nombre de un archivo.
+
+\begin{lstlisting}
+mv archivo.txt Documentos/
+mv archivo.txt nuevo_nombre.txt
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-cmd-mv.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-cmd-mv.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{mv}.}
+    \label{fig:prac01:mv}
+\end{figure}
+
+\subsubsection{\texttt{more}}
+\textbf{Función:} permite ver el contenido de un archivo muy largo sin que sature toda la terminal de golpe. El texto avanza página por página utilizando la barra espaciadora.
+
+\begin{lstlisting}
+more archivo.txt
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-cmd-more.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-cmd-more.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{more}.}
+    \label{fig:prac01:more}
+\end{figure}
+
+\subsubsection{\texttt{less}}
+\textbf{Función:} cumple el mismo propósito que \texttt{more}, pero resulta más versátil: permite usar las flechas del teclado para subir y bajar libremente por todo el texto del archivo, y no sólo avanzar hacia adelante.
+
+\begin{lstlisting}
+less archivo.txt
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-cmd-less.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-cmd-less.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{less}.}
+    \label{fig:prac01:less}
+\end{figure}
+
+\subsubsection{\texttt{mkdir}}
+\textbf{Función:} crea directorios nuevos. Se escribe el nombre deseado después del comando y la carpeta se crea en la ubicación actual.
+
+\begin{lstlisting}
+mkdir practica1
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-cmd-mkdir.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-cmd-mkdir.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{mkdir}.}
+    \label{fig:prac01:mkdir}
+\end{figure}
+
+\subsubsection{\texttt{pico}}
+\textbf{Función:} editor de texto que se abre dentro de la propia terminal. Es un editor básico, pero resulta suficiente para escribir o modificar archivos de forma rápida sin salir al entorno gráfico.
+
+\begin{lstlisting}
+pico archivo.txt
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-cmd-pico.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-cmd-pico.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{pico}.}
+    \label{fig:prac01:pico}
+\end{figure}
+
+\subsubsection{\texttt{nano}}
+\textbf{Función:} editor de texto en terminal que constituye la versión mejorada de \texttt{pico} y resulta más amigable para el usuario. Su principal ventaja es que muestra los atajos de teclado (guardar, salir, buscar) en la parte inferior de la pantalla, de modo que no es necesario memorizarlos. En la sección \ref{sec:prac01:hola-nano} se utiliza para escribir y compilar un programa en C.
+
+\begin{lstlisting}
+nano archivo.txt
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-cmd-nano.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-cmd-nano.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{nano}.}
+    \label{fig:prac01:nano}
+\end{figure}
+
+\subsubsection{\texttt{vi}}
+\textbf{Función:} editor de texto más complejo que los anteriores, pero también más potente. Funciona por modos: se requieren teclas especiales para entrar al modo de inserción (para poder escribir) y al modo de comandos (para guardar y salir).
+
+\begin{lstlisting}
+vi archivo.txt
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-cmd-vi.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-cmd-vi.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución del comando \texttt{vi}.}
+    \label{fig:prac01:vi}
+\end{figure}
+
+\section{Instrucciones finales}
+\label{sec:prac01:instrucciones-finales}
+
+Esta última sección reúne los ejercicios finales que pide el guion de la práctica, también repartidos entre los cuatro integrantes: ejemplos de rutas, borrado con comodines y redireccionamiento (Aarón); instalación de software y jerarquía de directorios (Magaly); alta y baja de un usuario en sesión; y la compilación de un programa en C con dos editores distintos, en macOS y en GNU/Linux.
+
+% ---------------------------------------------------------------------
+%  Rutas y comodines (Aarón Ugalde Téllez)
+% ---------------------------------------------------------------------
+
+\subsection{Rutas absolutas y relativas: ejemplos}
+\label{sec:prac01:rutas-ejemplos}
+Retomando los conceptos de la sección \ref{sec:prac01:rutas-teoria}, una ruta absoluta indica la ubicación completa de un archivo o directorio partiendo desde el directorio raíz, representado por \texttt{/}. Una ruta relativa, en cambio, se interpreta tomando como referencia el directorio de trabajo actual.
+
+\subsubsection{Ejemplos de rutas absolutas}
+\begin{enumerate}[leftmargin=*]
+    \item \texttt{/home/usuario/Documentos/reporte.pdf}. La ruta comienza en \texttt{/} y especifica toda la ubicación del archivo dentro del sistema de archivos. No depende del directorio actual de la terminal.
+    \item \texttt{/etc/hosts}. Corresponde a un archivo del directorio \texttt{/etc}. La ruta puede utilizarse desde cualquier directorio porque parte de la raíz del sistema.
+    \item \texttt{/var/log/syslog}. Indica la ubicación de un archivo de registro dentro de \texttt{/var/log}. Al igual que los ejemplos anteriores, la ruta es independiente del directorio actual.
+\end{enumerate}
+
+\subsubsection{Ejemplos de rutas relativas}
+Para los siguientes ejemplos se supone que el directorio actual es \texttt{/home/usuario}.
+
+\begin{enumerate}[leftmargin=*]
+    \item \texttt{Documentos/reporte.pdf}. Se parte del directorio actual y se entra al directorio \texttt{Documentos} para localizar el archivo \texttt{reporte.pdf}.
+    \item \texttt{./programa}. El prefijo \texttt{./} significa ``directorio actual'', por lo que se intenta ejecutar o localizar \texttt{programa} dentro del directorio en el que se encuentra la terminal.
+    \item \texttt{../Imagenes/foto.png}. El componente \texttt{..} representa el directorio padre. Por tanto, primero se sube de \texttt{/home/usuario} a \texttt{/home} y después se entra al directorio \texttt{Imagenes}.
+\end{enumerate}
+
+\subsection{Borrado de archivos con \texttt{rm} y comodines}
+\label{sec:prac01:rm-comodines}
+El comando \texttt{rm} elimina archivos. Los comodines permiten seleccionar varios nombres de archivo mediante patrones. El comodín \texttt{*} representa cero o más caracteres, mientras que \texttt{?} representa exactamente un carácter. Los siguientes ejemplos son deliberadamente sencillos y deben ejecutarse únicamente después de verificar con \texttt{ls} qué archivos serán afectados.
+
+\begin{enumerate}[leftmargin=*]
+    \item \texttt{rm *.tmp} --- elimina todos los archivos del directorio actual cuyo nombre termine en \texttt{.tmp}. El comodín \texttt{*} permite que existan cero o más caracteres antes de la extensión.
+    \item \texttt{rm archivo?.txt} --- elimina archivos como \texttt{archivo1.txt} o \texttt{archivoA.txt}, pero no coincide con nombres que tengan cero o más caracteres en esa posición. El comodín \texttt{?} representa exactamente un carácter.
+    \item \texttt{rm datos/resultado?.csv} --- busca dentro del directorio \texttt{datos} archivos como \texttt{resultado1.csv} o \texttt{resultadoA.csv}. La ruta es relativa al directorio de trabajo actual y el patrón usa el comodín \texttt{?}.
+\end{enumerate}
+
+Como medida de seguridad, es posible utilizar \texttt{rm -i} para solicitar confirmación antes de cada eliminación, por ejemplo \texttt{rm -i *.tmp}. Debe tenerse especial cuidado con patrones como \texttt{rm *}, ya que pueden seleccionar una gran cantidad de archivos.
+
+\subsection{Redireccionamiento con \ensuremath{>} y \ensuremath{>>}: ejemplos}
+Como se explicó en la sección \ref{sec:prac01:redir-teoria}, el redireccionamiento permite enviar la salida de un comando a un archivo en lugar de mostrarla exclusivamente en la terminal. El operador \ensuremath{>} crea el archivo o sobrescribe su contenido, mientras que \ensuremath{>>} agrega la salida al final del archivo conservando la información existente.
+
+\subsubsection{Ejemplo 1: \ensuremath{>}}
+\begin{lstlisting}
+ls -la > listado.txt
+\end{lstlisting}
+Este comando guarda en \texttt{listado.txt} la salida producida por \texttt{ls -la}. Si el archivo ya existía, su contenido anterior se reemplaza por la nueva salida.
+
+\subsubsection{Ejemplo 2: \ensuremath{>>}}
+\begin{lstlisting}
+echo "Nueva ejecucion" >> registro.txt
+\end{lstlisting}
+Este comando agrega el texto al final de \texttt{registro.txt}. Si el archivo no existe, normalmente se crea; si ya existe, su contenido se conserva y la nueva línea se añade al final.
+
+% ---------------------------------------------------------------------
+%  Instalación de software y jerarquía de directorios (Magaly López Castro)
+% ---------------------------------------------------------------------
+
+\subsection{Instalación de software}
+
+\subsubsection{Instalación desde la línea de comandos}
+Para instalar software utilizando la terminal en distribuciones basadas en Debian y Ubuntu se utiliza el gestor de paquetes \texttt{apt}. El procedimiento ejecutado fue la actualización de repositorios y la instalación del editor de imágenes GIMP \cite{debian:apt-manual:2023}:
+
+\begin{lstlisting}
+sudo apt update
+sudo apt install gimp -y
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/InstalarC.png}
+        {\includegraphics[width=\textwidth]{InstalarC.png}}
+        {\fbox{\parbox[c][4cm][c]{\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Instalación de software desde la línea de comandos con \texttt{apt}.}
+    \label{fig:prac01:instalar-cli}
+\end{figure}
+
+\subsubsection{Instalación usando el entorno gráfico}
+El proceso mediante interfaz gráfica se realizó abriendo la tienda de aplicaciones del sistema (\textit{Ubuntu Software}), buscando la aplicación deseada mediante su barra de búsqueda y seleccionando la opción de instalación directa con privilegios de usuario \cite{canonical:ubuntu-software:2023}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/InstalarG.png}
+        {\includegraphics[width=\textwidth]{InstalarG.png}}
+        {\fbox{\parbox[c][4cm][c]{\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Instalación de software desde el entorno gráfico (\textit{Ubuntu Software}).}
+    \label{fig:prac01:instalar-gui}
+\end{figure}
+
+\subsection{Ejemplos de jerarquía de directorios con \texttt{cp} y \texttt{mv}}
+A continuación se presentan cinco ejemplos prácticos que utilizan rutas relativas y absolutas para la manipulación de archivos y directorios \cite{gnu:coreutils-manual:2023}.
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Copiar un archivo hacia un subdirectorio (hacia abajo):}
+\begin{lstlisting}
+cp reporte.txt Documentos/
+\end{lstlisting}
+    Copia el archivo \texttt{reporte.txt} desde el directorio actual hacia la carpeta hija \texttt{Documentos}.
+
+    \item \textbf{Mover un archivo al directorio padre (hacia arriba):}
+\begin{lstlisting}
+mv captura.png ../
+\end{lstlisting}
+    Utiliza los dos puntos (\texttt{..}) para indicar que el archivo subirá un nivel en la jerarquía de carpetas.
+
+    \item \textbf{Copiar un directorio completo usando rutas absolutas y recursividad:}
+\begin{lstlisting}
+cp -r ~/Descargas/practica ~/Documentos/Respaldos/
+\end{lstlisting}
+    El símbolo \texttt{\~{}} representa el directorio personal del usuario. La bandera \texttt{-r} es obligatoria para copiar directorios completos.
+
+    \item \textbf{Mover un archivo distante hacia el directorio actual:}
+\begin{lstlisting}
+mv ~/Descargas/dataset.csv .
+\end{lstlisting}
+    El punto (\texttt{.}) al final indica que el archivo de origen se reubicará exactamente en la ruta donde está posicionado el usuario.
+
+    \item \textbf{Mover un directorio hacia una ruta hermana (relativa):}
+\begin{lstlisting}
+mv ./codigo_c ../Proyecto_Paralelo/
+\end{lstlisting}
+    Traslada una carpeta local hacia un directorio paralelo ubicado un nivel arriba en el árbol de archivos.
+\end{enumerate}
+
+% ---------------------------------------------------------------------
+%  "Hola Mundo" en C con nano y gedit (Lino Ehecatl Romero Rosales)
+% ---------------------------------------------------------------------
+
+% ---------------------------------------------------------------------
+%  Alta y baja de un usuario en sesión
+% ---------------------------------------------------------------------
+
+\subsection{Alta, verificación y baja de un usuario en sesión}
+\label{sec:prac01:usuario}
+
+En este ejercicio se crea un usuario nuevo, se comprueba que el sistema lo registró, se inicia sesión con él y finalmente se intenta borrarlo \emph{mientras la sesión sigue abierta}, con el fin de observar cómo reacciona el sistema ante esa situación.
+
+\subsubsection{Paso 1: agregar el usuario}
+En distribuciones basadas en Debian y Ubuntu la forma recomendada es \texttt{adduser}, que crea el directorio personal, asigna el shell, solicita la contraseña y pide de manera interactiva los datos descriptivos de la cuenta:
+
+\begin{lstlisting}
+sudo adduser usuario_prueba
+\end{lstlisting}
+
+La alternativa de bajo nivel, disponible en cualquier distribución, es \texttt{useradd}. A diferencia de la anterior no hace nada de forma implícita, por lo que hay que pedirle explícitamente el directorio personal (\texttt{-m}) y el intérprete de comandos (\texttt{-s}), y asignar la contraseña en un segundo paso:
+
+\begin{lstlisting}
+sudo useradd -m -s /bin/bash usuario_prueba
+sudo passwd usuario_prueba
+\end{lstlisting}
+
+Durante la ejecución, el sistema rechazó la primera contraseña propuesta por tener menos de ocho caracteres y detectó que la confirmación no coincidía con la original, por lo que solicitó capturarla de nuevo. Este comportamiento corresponde a las políticas de complejidad de contraseñas que aplica el módulo de autenticación antes de aceptar el cambio.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/usuario-1-crear.jpeg}
+        {\includegraphics[width=0.75\textwidth]{usuario-1-crear.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Creación del usuario \texttt{usuario\_prueba} mediante \texttt{adduser}.}
+    \label{fig:prac01:usuario-crear}
+\end{figure}
+
+\subsubsection{Paso 2: verificar que el usuario existe}
+La existencia del usuario puede comprobarse por tres vías independientes: su identificador y grupos, su registro en la base de datos de cuentas y su directorio personal.
+
+\begin{lstlisting}
+id usuario_prueba
+grep "^usuario_prueba:" /etc/passwd
+ls -ld /home/usuario_prueba
+\end{lstlisting}
+
+El comando \texttt{id} devuelve el UID asignado, el GID de su grupo primario y los grupos suplementarios a los que pertenece. En este caso reportó \texttt{uid=1001}, lo que confirma lo expuesto en la sección \ref{sec:prac01:marco-teorico}: las cuentas creadas para personas físicas reciben un UID a partir de 1000, mientras que los identificadores menores quedan reservados para el superusuario y las cuentas de servicio. El sistema creó además un grupo propio con el mismo nombre y número que la cuenta, y la añadió al grupo suplementario \texttt{users}.
+
+La línea de \texttt{/etc/passwd} muestra, separados por dos puntos, el nombre de la cuenta, el UID, el GID, el directorio personal y el shell asignado. La contraseña no aparece ahí: se almacena cifrada en \texttt{/etc/shadow}, legible únicamente por el superusuario.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/usuario-2-id.jpeg}
+        {\includegraphics[width=0.75\textwidth]{usuario-2-id.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Verificación de la cuenta con \texttt{id}: UID, GID y grupos asignados.}
+    \label{fig:prac01:usuario-id}
+\end{figure}
+
+\subsubsection{Paso 3: entrar en sesión con el usuario nuevo}
+Con \texttt{su} se cambia de identidad sin cerrar la sesión actual. El guion es importante: sin él se conserva el entorno del usuario anterior, mientras que con él se carga el entorno completo del usuario destino, incluidas sus variables de entorno y su directorio personal como directorio de trabajo.
+
+\begin{lstlisting}
+su - usuario_prueba
+whoami
+\end{lstlisting}
+
+El cambio se aprecia de inmediato en el indicador de la terminal, que pasa de mostrar la cuenta administradora a mostrar \texttt{usuario\_prueba}. El comando \texttt{whoami} lo confirma imprimiendo el nombre del usuario efectivo de la sesión.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/usuario-4-whoami.jpeg}
+        {\includegraphics[width=0.75\textwidth]{usuario-4-whoami.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Sesión iniciada con \texttt{su -} y confirmación de la identidad con \texttt{whoami}.}
+    \label{fig:prac01:usuario-sesion}
+\end{figure}
+
+\subsubsection{Paso 4: la baja de una cuenta con sesión abierta}
+Éste es el punto central del ejercicio. La secuencia para intentar la baja mientras el usuario sigue conectado requiere dos terminales: en la primera permanece abierta la sesión iniciada en el paso anterior, mientras que desde una \emph{segunda} terminal, con la cuenta administradora, se consulta quién está conectado y se intenta eliminar la cuenta. La opción \texttt{-r} indica que se borre también su directorio personal:
+
+\begin{lstlisting}
+who
+sudo userdel -r usuario_prueba
+\end{lstlisting}
+
+El borrado no se completa. Antes de eliminar la cuenta, \texttt{userdel} comprueba si quedan procesos en ejecución pertenecientes a ese usuario y, al encontrarlos, se niega a continuar e informa que el usuario está siendo utilizado por un proceso, indicando su PID \cite{manpages:userdel:2023}.
+
+El motivo es que en GNU/Linux los procesos no guardan el nombre de su propietario, sino su UID numérico. Si la cuenta se eliminara con la sesión abierta, los procesos seguirían ejecutándose con un UID que ya no corresponde a ninguna entrada de \texttt{/etc/passwd}: quedarían huérfanos, mostrándose como un número en lugar de un nombre en herramientas como \texttt{ps} o \texttt{ls -l}. Peor aún, si más adelante se crea otro usuario y el sistema le asigna ese mismo UID reciclado, heredaría la propiedad de los archivos y procesos del usuario anterior.
+
+De ahí se desprende el procedimiento correcto, que es el que se siguió en esta práctica: liberar primero la cuenta y darla de baja después.
+
+\subsubsection{Paso 5: baja definitiva de la cuenta}
+Para liberar la cuenta basta con cerrar su sesión mediante \texttt{logout} o \texttt{exit} desde su propia terminal; como alternativa, desde la cuenta administradora pueden terminarse todos sus procesos con \texttt{pkill -u usuario\_prueba}. Una vez liberada, el borrado se realiza sin obstáculos y se comprueba que la cuenta dejó de existir:
+
+\begin{lstlisting}
+logout
+sudo userdel -r -f usuario_prueba
+id usuario_prueba
+\end{lstlisting}
+
+La eliminación se completó y \texttt{id} respondió \texttt{no such user}, lo que confirma que la cuenta ya no está registrada en el sistema. El mensaje \texttt{mail spool (/var/mail/usuario\_prueba) not found} que apareció durante la operación no es un error: la opción \texttt{-r} intenta borrar también el buzón de correo local del usuario y simplemente advierte que ese archivo nunca llegó a crearse.
+
+Sobre la opción \texttt{-f} conviene una precisión. Su función es forzar la eliminación aunque el usuario siga conectado, omitiendo la comprobación descrita en el paso anterior. No resuelve el problema de fondo: los procesos del usuario seguirían ejecutándose y quedarían precisamente en el estado huérfano ya descrito, razón por la cual el propio manual advierte que su uso es peligroso y puede dejar el sistema en un estado inconsistente \cite{manpages:userdel:2023}. Habiendo cerrado la sesión previamente, la comprobación que \texttt{-f} omite ya se cumplía por sí sola, de modo que la baja se realizó en las condiciones seguras descritas.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/usuario-5-borrar.jpeg}
+        {\includegraphics[width=0.75\textwidth]{usuario-5-borrar.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Cierre de sesión, baja definitiva de la cuenta y verificación de que ya no existe.}
+    \label{fig:prac01:usuario-borrar}
+\end{figure}
+
+\subsection{Secuencia para crear, compilar y ejecutar ``Hola Mundo'' en C con \texttt{nano}}
+\label{sec:prac01:hola-nano}
+
+El editor \texttt{nano} funciona dentro de la propia terminal, por lo que todo el procedimiento se realiza sin salir de ella.
+
+\textbf{Paso 1.} Se crea y abre el archivo con \texttt{nano}:
+
+\begin{lstlisting}
+nano hola_mundo.c
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-nano1.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-nano1.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Creación del archivo \texttt{hola\_mundo.c} con \texttt{nano}.}
+    \label{fig:prac01:nano-crear}
+\end{figure}
+
+\textbf{Paso 2.} Se escribe el código en lenguaje C y se guarda con \texttt{Ctrl+O}:
+
+\begin{lstlisting}[style=C]
+#include <stdio.h>
+
+int main() {
+    printf("Hola Mundo\n");
+    return 0;
+}
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-nano2.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-nano2.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Código en lenguaje C escrito en \texttt{nano}.}
+    \label{fig:prac01:nano-codigo}
+\end{figure}
+
+\textbf{Paso 3.} Se compila con \texttt{gcc} indicando el nombre del archivo y la ruta donde se guardó, y se ejecuta el binario resultante:
+
+\begin{lstlisting}
+gcc holamundo.c -o holamundo
+./holamundo
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-nano3.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-nano3.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Compilación con \texttt{gcc} y ejecución del programa.}
+    \label{fig:prac01:nano-ejecucion}
+\end{figure}
+
+\subsection{Secuencia para crear, compilar y ejecutar ``Hola Mundo'' en C con \texttt{gedit}}
+\label{sec:prac01:hola-gedit}
+
+A diferencia de \texttt{nano}, \texttt{gedit} es un editor con interfaz gráfica, por lo que se abre desde la terminal y la redacción del código se realiza en su ventana.
+
+\textbf{Paso 1.} Se escribe \texttt{gedit} seguido del nombre del archivo que se va a crear:
+
+\begin{lstlisting}
+gedit holamundo2.c
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-gedit1.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-gedit1.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Apertura del editor \texttt{gedit} desde la terminal.}
+    \label{fig:prac01:gedit-abrir}
+\end{figure}
+
+\textbf{Paso 2.} En el recuadro de texto que se abre se coloca el código en C que se quiere compilar.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-gedit2.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-gedit2.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Redacción del código fuente en la interfaz gráfica de \texttt{gedit}.}
+    \label{fig:prac01:gedit-codigo}
+\end{figure}
+
+\textbf{Paso 3.} Se compila el código con \texttt{gcc}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-gedit3.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-gedit3.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Compilación del archivo \texttt{holamundo2.c}.}
+    \label{fig:prac01:gedit-compilar}
+\end{figure}
+
+\textbf{Paso 4.} Se selecciona la ruta donde se colocó el archivo y se ejecuta el binario generado.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/lino-gedit4.jpeg}
+        {\includegraphics[width=0.75\textwidth]{lino-gedit4.jpeg}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Ejecución exitosa del binario \texttt{holamundo2}.}
+    \label{fig:prac01:gedit-ejecucion}
+\end{figure}
+
+% ---------------------------------------------------------------------
+%  Equivalente de gedit en macOS (Said Carbot Cruz Trejo)
+% ---------------------------------------------------------------------
+
+\subsection{``Hola Mundo'' en C usando el editor gráfico en macOS}
+\label{sec:prac01:hola-macos}
+
+\begin{nota}[Nota sobre macOS]
+El editor gráfico \texttt{gedit} es propio de GNU/Linux y no viene incluido de forma nativa en macOS. El procedimiento se realizó con su equivalente gráfico nativo, \texttt{TextEdit}, creando el archivo previamente desde la terminal.
+\end{nota}
+
+\textbf{Paso 1. Crear el archivo y abrirlo.} Se crea el archivo vacío desde la terminal y se abre con el editor gráfico:
+
+\begin{lstlisting}
+touch holamundo.c
+open -a TextEdit holamundo.c
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/12.png}
+        {\includegraphics[width=0.75\textwidth]{12.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Creación del archivo desde la terminal.}
+    \label{fig:prac01:crear-archivo}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/13.png}
+        {\includegraphics[width=0.75\textwidth]{13.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Apertura del archivo con \texttt{TextEdit}.}
+    \label{fig:prac01:abrir-editor}
+\end{figure}
+
+En la ventana del editor se redacta el siguiente código en C:
+
+\begin{lstlisting}[style=C]
+#include <stdio.h>
+
+int main() {
+    printf("Hola Mundo\n");
+    return 0;
+}
+\end{lstlisting}
+
+El archivo se guarda con \texttt{Cmd+S} y se cierra la ventana.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/14.png}
+        {\includegraphics[width=0.75\textwidth]{14.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Código fuente redactado en \texttt{TextEdit}.}
+    \label{fig:prac01:codigo-textedit}
+\end{figure}
+
+\textbf{Paso 2. Compilar el programa.} Se compila utilizando GCC desde la terminal:
+
+\begin{lstlisting}
+gcc holamundo.c -o holamundo
+\end{lstlisting}
+
+\textbf{Paso 3. Ejecutar el programa.} Se ejecuta el binario generado:
+
+\begin{lstlisting}
+./holamundo
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac01/figuras/15.png}
+        {\includegraphics[width=0.75\textwidth]{15.png}}
+        {\fbox{\parbox[c][4cm][c]{0.75\textwidth}{\centering Colocar aquí la captura}}}
+    \caption{Compilación y ejecución exitosa del programa.}
+    \label{fig:prac01:compilar-ejecutar}
+\end{figure}
+
+% ---------------------------------------------------------------------
+%  Conclusiones (una por integrante)
+% ---------------------------------------------------------------------
+
+\section{Conclusiones}
+\label{sec:prac01:conclusiones}
+
+A continuación cada integrante del equipo comparte su experiencia individual con el desarrollo de esta práctica.
+
+\subsection{Conclusión — Aarón Ugalde Téllez}
+\label{sec:prac01:concl:aaron}
+
+Investigar los temas de máquinas virtuales, distribuciones y requisitos de instalación me permitió entender, antes incluso de tocar una terminal, por qué el equipo terminó dividido en dos enfoques para esta práctica. Al trabajar sobre un equipo Apple Silicon con macOS entendí de primera mano la limitación que menciono en la sección \ref{sec:prac01:marco-teorico}: no bastaba con descargar cualquier imagen de GNU/Linux, sino que había que verificar su compatibilidad con la arquitectura del procesador, y no contar con una imagen adecuada para esta práctica fue justamente lo que me llevó a documentar mi entorno de trabajo en lugar de una instalación.
+
+Resolver los comandos que me tocaron reforzó esa idea de equivalencia entre sistemas: comandos como \texttt{ps aux} o \texttt{apt}, que en GNU/Linux se dan por sentados, no existen tal cual en macOS y hay que sustituirlos por herramientas como Homebrew o adaptar la sintaxis de \texttt{ps}. Tener que explicar por qué no aplicaban directamente me obligó a entender su función más a fondo de lo que lo habría hecho si sólo los hubiera ejecutado en Linux. Por otro lado, los ejercicios de rutas absolutas y relativas, comodines con \texttt{rm} y redireccionamiento con \texttt{>} y \texttt{>>} me parecieron los más aplicables a mi trabajo diario en la terminal, independientemente del sistema operativo que se use.
+
+En general, esta práctica me dejó claro que el conocimiento de GNU/Linux no depende únicamente de tener el sistema instalado, sino de entender los conceptos que hay detrás de cada comando y de cada decisión de administración, algo que será indispensable conforme la materia avance hacia temas de programación paralela.
+
+\subsection{Conclusión — Said Carbot Cruz Trejo}
+\label{sec:prac01:concl:said}
+
+Esta práctica fue mi primer acercamiento formal a clasificar los comandos de GNU/Linux más allá de simplemente usarlos: distinguir entre comandos internos, externos y alias, y entender el papel de las variables de entorno como \texttt{\$PATH} me ayudó a comprender por qué a veces un comando funciona en una terminal y en otra no, dependiendo de cómo esté configurado el sistema.
+
+Al trabajar también desde macOS, me tocó documentar comandos que sí existen de forma nativa en ambos sistemas, como \texttt{cal}, \texttt{date}, \texttt{echo} o \texttt{wc}, y contrastarlos con \texttt{apt-get}, que tuve que resolver usando Homebrew como equivalente. Eso me hizo apreciar que buena parte de GNU/Linux y macOS comparten el mismo origen en Unix, aunque cada uno tenga sus propias herramientas de gestión de paquetes. La parte que más disfruté fue la secuencia final de crear, compilar y ejecutar un programa en C: al no tener \texttt{gedit} disponible en macOS, tuve que resolverlo con TextEdit como editor gráfico equivalente, lo que me hizo valorar que el proceso de compilación con \texttt{gcc} es idéntico sin importar en qué editor se haya escrito el código.
+
+En conjunto, esta práctica me sirvió para reforzar las bases de la terminal que usaré durante el resto del semestre en la materia de Cómputo Paralelo.
+
+\subsection{Conclusión — Magaly López Castro}
+\label{sec:prac01:concl:magaly}
+
+A diferencia de mis compañeros que trabajaron en macOS, yo sí tuve la oportunidad de instalar GNU/Linux desde cero mediante una máquina virtual, lo que me permitió vivir el proceso completo: descargar la imagen del sistema, configurarla en el software de virtualización y verificar que quedara funcionando correctamente. Ese proceso le dio sentido práctico a los temas teóricos que investigué sobre tipos de usuario, ya que pude comprobar directamente la diferencia entre trabajar como usuario estándar y necesitar privilegios de superusuario con \texttt{sudo} para tareas de administración.
+
+Los comandos que me tocaron —como \texttt{ifconfig}, \texttt{df}, \texttt{du}, \texttt{pstree} y las distintas señales de \texttt{kill}— me mostraron una cara más administrativa de GNU/Linux, enfocada en monitorear el sistema y gestionar procesos, en contraste con los comandos más orientados a archivos que trabajaron otros integrantes. También resolví la instalación de software desde la línea de comandos y desde el entorno gráfico, y los ejemplos de jerarquía de directorios con \texttt{cp} y \texttt{mv}, que me parecieron los más útiles para el trabajo cotidiano en la terminal.
+
+Instalar el sistema por mi cuenta y resolver estos ejercicios me dejó mucho más segura para las prácticas que vienen, en las que sé que pasaremos más tiempo trabajando directamente dentro de GNU/Linux.
+
+\subsection{Conclusión — Lino Ehecatl Romero Rosales}
+\label{sec:prac01:concl:lino}
+
+De los cuatro integrantes, a mí me tocó la instalación más laboriosa: en lugar de usar una máquina virtual, instalé GNU/Linux directamente en una partición física de mi disco duro, conviviendo con Windows. Documentar ese proceso —desde preparar la memoria USB booteable hasta configurar el arranque dual con GRUB— me hizo valorar pasos que en una máquina virtual pasan casi desapercibidos, como la creación de espacio libre en el disco antes de particionar o la posibilidad real de dejar el sistema en un estado inconsistente si algo sale mal.
+
+Trabajar ya directamente en GNU/Linux me permitió resolver los comandos de edición de texto (\texttt{pico}, \texttt{nano}, \texttt{vi}) y de manejo de archivos (\texttt{touch}, \texttt{rm}, \texttt{mv}, \texttt{more}, \texttt{less}, \texttt{mkdir}) sin necesidad de equivalencias, así como la secuencia completa de crear, compilar y ejecutar un programa en C usando \texttt{nano} y \texttt{gedit}. También fue en mi equipo donde se ejecutó el ejercicio de alta, verificación y baja de un usuario en sesión de la sección \ref{sec:prac01:usuario}, donde comprobé de primera mano por qué el sistema se niega a borrar una cuenta que todavía tiene procesos activos.
+
+En general, esta práctica me confirmó que instalar GNU/Linux desde cero, aunque tome más tiempo que usar una máquina virtual, deja una comprensión mucho más completa de cómo está organizado el sistema por dentro.
