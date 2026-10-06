@@ -8,41 +8,440 @@
 %  Convenciones:
 %   * Figuras en capitulos/cap03/figuras/ con prefijo cap03-
 %     y citadas sólo por nombre: \includegraphics{cap03-esquema.png}
+%   * Código en capitulos/cap03/codigo/ (se lista en los anexos)
 %   * Etiquetas: fig:cap03:..., tab:cap03:..., sec:cap03:..., lst:cap03:...
 %   * Citas con \cite{clave} sobre bib/referencias.bib
+%
+%  ESTRUCTURA: sigue el guion de la fase (3.1 marco teórico, 3.2
+%  programación con procesos, 3.3 análisis, 3.4 conclusiones, 3.6
+%  anexos; 3.5 referencias las imprime el documento contenedor). En
+%  3.2, 3.3 y 3.4 va una subsección por integrante.
+%
+%  ESTADO: sólo está escrita la parte de Aarón Ugalde Téllez. Lo que
+%  falta de los demás integrantes está marcado con "PENDIENTE".
 % =====================================================================
 
 \chapter{\TituloCapTres}
 \label{cap:03}
 
-\section{Introducción}
-\label{sec:cap03:introduccion}
+En este capítulo se lleva a un programa en lenguaje C el cálculo de los términos de la Serie de Fourier que se resolvió analíticamente en el capítulo 1 y se graficó en hojas de cálculo en el capítulo 2. A diferencia de la hoja de cálculo, que evalúa todo de forma secuencial, el programa reparte el trabajo entre cien procesos hijos creados con \texttt{fork()}: cada hijo calcula un armónico, los resultados se acumulan en una región de memoria compartida y un semáforo garantiza que esa acumulación se haga sin condiciones de carrera.
 
-Contenido pendiente.
+% =====================================================================
+% 3.1 Marco teórico
+% =====================================================================
+\section{Marco teórico}
+\label{sec:cap03:marco}
 
-\section{Desarrollo}
-\label{sec:cap03:desarrollo}
+% PENDIENTE (otros integrantes): \subsection{Procesos hijos con la
+%   llamada al sistema fork()}
+% PENDIENTE (otros integrantes): \subsection{Memoria compartida en
+%   lenguaje C}
 
-Contenido pendiente.
+% ---------------------------------------------------------------------
+\subsection{Semáforos y sincronización en lenguaje C}
+\label{sec:cap03:semaforos}
 
-% Ejemplo de figura (descomenta y ajusta):
-% \Figura{cap03-ejemplo.png}{0.7}{Pie de la figura.}{capjemplo}
+Cuando varios procesos cooperan sobre un recurso común en memoria compartida aparece el problema de la \textit{condición de carrera} (\textit{race condition}): dos o más procesos leen y modifican al mismo tiempo el mismo dato, de modo que el resultado final depende del orden en que el planificador intercale sus instrucciones, y ese orden no es determinista \cite{silberschatz:os-concepts:2018}. Una instrucción tan simple como \texttt{f\_x[i] += t} parece una sola operación, pero el procesador la ejecuta como tres: leer el valor, sumarle \texttt{t} y escribir el resultado. Si dos procesos leen el mismo valor antes de que cualquiera de ellos escriba, una de las dos sumas se pierde.
 
-% Ejemplo de tabla (descomenta y ajusta):
-% \begin{table}[H]
-%     \centering
-%     \caption{Pie de la tabla.}
-%     \label{tab:capjemplo}
-%     \begin{tabular}{lrr}
-%         \toprule
-%         \textbf{Columna} & \textbf{Valor} & \textbf{Unidad} \\
-%         \midrule
-%         Ejemplo & 0.00 & s \\
-%         \bottomrule
-%     \end{tabular}
-% \end{table}
+El mecanismo clásico para lograr la \textit{exclusión mutua} en estas \textit{secciones críticas} es el semáforo, propuesto por Edsger W. Dijkstra a mediados de los años sesenta \cite{silberschatz:os-concepts:2018}. Un semáforo es una variable entera administrada por el sistema operativo que sólo puede modificarse mediante dos operaciones atómicas, es decir, indivisibles:
 
+\begin{enumerate}
+    \item \textbf{Operación $P$} (del holandés \textit{Proberen}, ``probar''; también \textit{wait}): si el valor del semáforo es mayor que cero, lo decrementa y el proceso continúa; si vale cero, el proceso se bloquea y queda en la cola del semáforo hasta que otro proceso ejecute $V$.
+    \item \textbf{Operación $V$} (del holandés \textit{Verhogen}, ``incrementar''; también \textit{signal} o \textit{post}): incrementa el valor del semáforo y, si hay procesos bloqueados en su cola, despierta a uno de ellos.
+\end{enumerate}
+
+Un semáforo inicializado en 1 se denomina \textit{binario} o \textit{mutex}: el primer proceso que ejecuta $P$ entra a la sección crítica y cualquier otro que llegue mientras tanto se bloquea hasta que el primero ejecute $V$ \cite{tanenbaum:modern-os:2014}.
+
+En GNU/Linux, y en general en los sistemas POSIX, los semáforos de la familia System V se administran como \textit{conjuntos} de semáforos que el núcleo identifica mediante el mecanismo IPC (\textit{Inter-Process Communication}) \cite{kerrisk:linux-programming-interface:2010}. Las tres llamadas al sistema fundamentales son:
+
+\begin{itemize}
+    \item \texttt{semget(key\_t key, int nsems, int semflg)}: crea un conjunto de \texttt{nsems} semáforos, o accede a uno existente, y devuelve su identificador. Cuando los procesos que lo comparten son parientes, como ocurre aquí, basta la clave \texttt{IPC\_PRIVATE}: el padre crea el conjunto antes de \texttt{fork()} y los hijos heredan el identificador.
+    \item \texttt{semctl(int semid, int semnum, int cmd, ...)}: ejecuta operaciones de control sobre el conjunto, como fijar el valor inicial de un semáforo (\texttt{SETVAL}) o eliminar el conjunto del sistema (\texttt{IPC\_RMID}).
+    \item \texttt{semop(int semid, struct sembuf *sops, size\_t nsops)}: ejecuta de manera atómica una lista de operaciones $P$ o $V$ descritas con la estructura \texttt{struct sembuf} del código \ref{lst:cap03:sembuf}.
+\end{itemize}
+
+\begin{lstlisting}[language=C, caption={Estructura \texttt{sembuf}, que describe una operación atómica sobre un semáforo System V.}, label={lst:cap03:sembuf}]
+struct sembuf {
+    unsigned short sem_num; // índice del semáforo dentro del conjunto (0 si hay uno solo)
+    short          sem_op;  // -1: operación P (wait)   +1: operación V (signal)
+    short          sem_flg; // banderas de control (por ejemplo, SEM_UNDO)
+};
+\end{lstlisting}
+
+Como el núcleo conserva los conjuntos de semáforos aunque el programa que los creó termine, el programa debe eliminarlos de forma explícita con \texttt{semctl(..., IPC\_RMID)}; de lo contrario quedan como recursos huérfanos que se pueden listar con el comando \texttt{ipcs}.
+
+% =====================================================================
+% 3.2 Programación con procesos en lenguaje C
+% =====================================================================
+\section{Programación con procesos en lenguaje C}
+\label{sec:cap03:programacion}
+
+% ---------------------------------------------------------------------
+\subsection{Función propuesta por Aarón Ugalde Téllez}
+\label{sec:cap03:aaron}
+
+\subsubsection{Serie de Fourier por evaluar}
+\label{sec:cap03:aaron:serie}
+
+La función asignada es la misma que se resolvió a mano en el capítulo 1 y se tabuló en el capítulo 2:
+
+\begin{equation}
+    f(x) = -\frac{5}{6}x^{2} + \frac{1}{3}x - \frac{2}{7},
+    \qquad x \in [-\pi, \pi].
+    \label{eq:cap03:aaron:funcion}
+\end{equation}
+
+Sus coeficientes de Fourier son
+
+\begin{align}
+    \frac{a_0}{2} &= -\frac{5\pi^{2}}{18} - \frac{2}{7} \approx -3.0273, \label{eq:cap03:aaron:a0}\\[4pt]
+    a_n &= \frac{10\,(-1)^{n+1}}{3n^{2}}, \label{eq:cap03:aaron:an}\\[4pt]
+    b_n &= \frac{2\,(-1)^{n+1}}{3n}, \label{eq:cap03:aaron:bn}
+\end{align}
+
+y la aproximación que calcula el programa conserva los primeros cien armónicos:
+
+\begin{equation}
+    F_{100}(x) = \frac{a_0}{2} + \sum_{n=1}^{100}
+    \left[ \frac{10\,(-1)^{n+1}}{3n^{2}}\cos(nx) + \frac{2\,(-1)^{n+1}}{3n}\sin(nx) \right].
+    \label{eq:cap03:aaron:serie100}
+\end{equation}
+
+El capítulo anterior se limitó a diez armónicos, $F_{10}(x)$; aquí el número de términos se multiplica por diez y cada término lo calcula un proceso distinto. Los valores de $x$ son los mismos 64 nodos de la hoja de cálculo, $x_k = -3.1416 + 0.1\,k$ con $k = 0, 1, \dots, 63$, es decir, de $-3.1416$ a $3.1584$. Conviene notar que el último nodo queda $0.0168$ por encima de $\pi$, fuera del intervalo $[-\pi, \pi]$; esto tiene consecuencias visibles en la gráfica (sección \ref{sec:cap03:aaron:resultados}).
+
+\subsubsection{Diseño de la solución con procesos}
+\label{sec:cap03:aaron:diseno}
+
+Como cada armónico $n$ es independiente de los demás, el cálculo se reparte de forma natural: el hijo número $p$ calcula el armónico $n = p$ en los 64 nodos. Lo único que los procesos comparten es el vector donde se suman las contribuciones, y por eso es ahí donde intervienen la memoria compartida y el semáforo. El programa sigue estos pasos:
+
+\begin{enumerate}
+    \item El padre crea, con \texttt{shmget} y \texttt{shmat}, una región de memoria compartida para 64 valores de tipo \texttt{double} (512 bytes) y escribe en cada posición el término constante $a_0/2$.
+    \item Crea con \texttt{semget} un semáforo System V y lo inicializa en 1 con \texttt{semctl}, de modo que la sección crítica comienza libre.
+    \item Mediante un ciclo con \texttt{fork()} crea los 100 procesos hijos.
+    \item Cada hijo calcula su armónico en un arreglo \emph{local} de 64 términos, sin sincronización alguna. Después ejecuta $P$, suma su arreglo al vector compartido, ejecuta $V$, se desacopla de la memoria compartida y termina.
+    \item El padre espera a los cien hijos con \texttt{wait()}, escribe el vector en un archivo CSV y libera la memoria compartida y el semáforo.
+\end{enumerate}
+
+La sección crítica se mantuvo lo más corta posible a propósito: el cálculo trigonométrico, que es la parte costosa, se hace fuera de ella sobre datos locales de cada proceso, y el semáforo sólo protege las 64 sumas sobre el vector compartido.
+
+\subsubsection{Fragmentos de código explicados}
+\label{sec:cap03:aaron:codigo}
+
+El código completo se encuentra en los anexos (sección \ref{sec:cap03:anexos}); en los fragmentos siguientes se omiten las comprobaciones de error para concentrarse en la lógica.
+
+El código \ref{lst:cap03:aaron:init} muestra la preparación de los recursos compartidos. \texttt{shmget} con la clave \texttt{IPC\_PRIVATE} crea un segmento nuevo de 512 bytes y \texttt{shmat} lo proyecta en el espacio de direcciones del padre. Como los hijos se crean después con \texttt{fork()}, heredan esa proyección y ven la misma memoria física: a diferencia del resto de la memoria del padre, que se duplica, ésta no se copia. El semáforo se crea con un solo elemento y \texttt{semctl} con \texttt{SETVAL} lo deja en 1, valor que lo convierte en un \textit{mutex}.
+
+\begin{lstlisting}[style=C, caption={Creación de la memoria compartida y del semáforo en el proceso padre.}, label={lst:cap03:aaron:init}]
+size_t shm_size = NUM_PUNTOS * sizeof(double);
+int shm_id = shmget(IPC_PRIVATE, shm_size, IPC_CREAT | 0666);
+double *f_x = (double *)shmat(shm_id, NULL, 0);
+
+double a0 = (-5.0 / 18.0) * (M_PI * M_PI) - (2.0 / 7.0);   // a0/2
+for (int i = 0; i < NUM_PUNTOS; i++) {
+    f_x[i] = a0;
+}
+
+int sem_id = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+union semun arg;
+arg.val = 1;                        // sección crítica libre
+semctl(sem_id, 0, SETVAL, arg);
+\end{lstlisting}
+
+Las operaciones $P$ y $V$ del código \ref{lst:cap03:aaron:pv} son envoltorios de \texttt{semop}. Cada una arma una \texttt{struct sembuf} (código \ref{lst:cap03:sembuf}) sobre el semáforo 0: con \texttt{sem\_op = -1} el proceso se bloquea si el semáforo vale cero, y con \texttt{sem\_op = 1} libera la sección crítica.
+
+\begin{lstlisting}[style=C, caption={Operaciones $P$ (\texttt{sem\_wait\_op}) y $V$ (\texttt{sem\_post\_op}) sobre el semáforo.}, label={lst:cap03:aaron:pv}]
+void sem_wait_op(int sem_id) {
+    struct sembuf sb = {0, -1, 0};  // semáforo 0, operación P
+    semop(sem_id, &sb, 1);
+}
+
+void sem_post_op(int sem_id) {
+    struct sembuf sb = {0, 1, 0};   // semáforo 0, operación V
+    semop(sem_id, &sb, 1);
+}
+\end{lstlisting}
+
+En el código \ref{lst:cap03:aaron:hijo} está el ciclo que crea a los hijos. \texttt{fork()} devuelve 0 en el proceso hijo, el PID del hijo en el padre y un valor negativo si falla; por eso el bloque \texttt{if (pid == 0)} es exclusivo de los hijos. Como la variable \texttt{p} del ciclo se copia en cada hijo, éste sabe qué armónico le toca. Los coeficientes $a_n$ y $b_n$ son las expresiones \eqref{eq:cap03:aaron:an} y \eqref{eq:cap03:aaron:bn}, y el factor $(-1)^{n+1}$ se obtiene comprobando la paridad de $n+1$. La acumulación queda encerrada entre $P$ y $V$: aunque los cien hijos terminen de calcular casi al mismo tiempo, el semáforo los deja entrar de uno en uno, de modo que ninguna suma se pierde. El \texttt{exit} final es indispensable, pues sin él cada hijo continuaría el ciclo y crearía nuevos procesos.
+
+\begin{lstlisting}[style=C, caption={Creación de los 100 hijos: cálculo local del armónico y acumulación protegida por el semáforo.}, label={lst:cap03:aaron:hijo}]
+for (int p = 1; p <= NUM_PROCESOS; p++) {
+    pid_t pid = fork();
+    if (pid == 0) {                              // --- proceso hijo ---
+        int n = p;                               // el hijo p calcula el armónico n = p
+        double local_terms[NUM_PUNTOS];
+        double signo = ((n + 1) % 2 == 0) ? 1.0 : -1.0;   // (-1)^(n+1)
+        double an = (10.0 * signo) / (3.0 * n * n);
+        double bn = (2.0 * signo) / (3.0 * n);
+
+        for (int i = 0; i < NUM_PUNTOS; i++) {   // cálculo local, sin sincronizar
+            double x = x_values[i];
+            local_terms[i] = an * cos(n * x) + bn * sin(n * x);
+        }
+
+        sem_wait_op(sem_id);                     // P: entrar a la sección crítica
+        for (int i = 0; i < NUM_PUNTOS; i++) {
+            f_x[i] += local_terms[i];            // suma en memoria compartida
+        }
+        sem_post_op(sem_id);                     // V: salir de la sección crítica
+
+        shmdt(f_x);
+        exit(EXIT_SUCCESS);                      // el hijo no debe seguir el ciclo
+    }
+}
+\end{lstlisting}
+
+Por último, el padre (código \ref{lst:cap03:aaron:padre}) llama cien veces a \texttt{wait()}: cada llamada recoge el estado de terminación de un hijo, lo que evita que queden procesos zombis. Con los 64 resultados ya acumulados, el padre los escribe en \texttt{fourier\_aaron\_64puntos.csv} (con \texttt{fprintf}, seis decimales) y libera los recursos con \texttt{IPC\_RMID}, ya que el núcleo no los elimina por sí solo.
+
+\begin{lstlisting}[style=C, caption={El padre espera a los hijos y libera los recursos IPC.}, label={lst:cap03:aaron:padre}]
+for (int i = 0; i < NUM_PROCESOS; i++) {
+    wait(NULL);                         // recoge a cada hijo: sin zombis
+}
+/* ... se escribe f_x[] en fourier_aaron_64puntos.csv ... */
+shmdt(f_x);
+shmctl(shm_id, IPC_RMID, NULL);         // elimina la memoria compartida
+semctl(sem_id, 0, IPC_RMID);            // elimina el semáforo
+\end{lstlisting}
+
+\subsubsection{Compilación y ejecución}
+\label{sec:cap03:aaron:ejecucion}
+
+Las evidencias de esta sección se obtuvieron en un equipo Apple Silicon (arquitectura \texttt{arm64}) con macOS, donde el comando \texttt{gcc} corresponde al compilador Apple clang 21 de las herramientas de línea de comandos del sistema; la ficha técnica del equipo está en la sección \ref{sec:cap03:aaron:equipo}. El programa sólo usa llamadas POSIX y System V IPC, que son las mismas que ofrece el núcleo de GNU/Linux. La única diferencia entre ambas plataformas es la unión \texttt{semun} que exige \texttt{semctl}: la biblioteca glibc de GNU/Linux no la declara y el programa debe definirla, mientras que el encabezado \texttt{<sys/sem.h>} de macOS ya la trae y redefinirla produce un error de compilación. Por eso la definición va protegida como muestra el código \ref{lst:cap03:aaron:semun}, de modo que el mismo archivo fuente sea válido en ambos sistemas.
+
+\begin{lstlisting}[style=C, caption={Definición de \texttt{union semun} sólo en GNU/Linux.}, label={lst:cap03:aaron:semun}]
+#if defined(__linux__)
+union semun {
+    int val;
+    struct semid_ds *buf;
+    unsigned short *array;
+};
+#endif
+\end{lstlisting}
+
+El código \ref{lst:cap03:aaron:compilacion} muestra la compilación con \texttt{-Wall} y optimización \texttt{-O2}, enlazando la biblioteca matemática con \texttt{-lm}. La compilación termina sin errores ni advertencias: el compilador no imprime ningún mensaje y devuelve el código de salida cero. Como control adicional, el mismo archivo se compiló con \texttt{-Wall -Wextra -pedantic}, que tampoco produjo mensajes.
+
+\begin{lstlisting}[numbers=none, language={}, caption={Compilación del programa sin errores ni advertencias.}, label={lst:cap03:aaron:compilacion}]
+$ gcc --version | head -1
+Apple clang version 21.0.0 (clang-2100.1.1.101)
+$ gcc -Wall -O2 fourier_aaron.c -o fourier_aaron -lm
+$ echo $?
+0
+\end{lstlisting}
+
+La ejecución (código \ref{lst:cap03:aaron:ejecucion}) muestra primero al padre y su PID, después una línea por cada hijo con su PID y el armónico que procesó, y al final la confirmación de que los cien hijos terminaron y de que se liberaron la memoria compartida y el semáforo. En esta ejecución los PIDs de los hijos resultaron consecutivos, porque el padre los crea uno tras otro. El orden en que los hijos imprimen su línea no está garantizado, pues depende del planificador; en esta ejecución coincidió con el orden de creación.
+
+\begin{lstlisting}[numbers=none, language={}, caption={Ejecución del programa con 100 procesos hijos.}, label={lst:cap03:aaron:ejecucion}]
+$ ./fourier_aaron
+====================================================================
+ CÓMPUTO PARALELO - CAPÍTULO 3: PROGRAMACIÓN CON PROCESOS
+ Integrante: Aarón Ugalde Téllez
+ Evaluación de Serie de Fourier con 100 Procesos Hijos (64 Puntos)
+====================================================================
+
+[PADRE | PID: 6729] Creando 100 procesos hijos...
+
+[HIJO #001 | PID: 6730] Armónico n =   1 procesado para los 64 puntos.
+[HIJO #002 | PID: 6731] Armónico n =   2 procesado para los 64 puntos.
+[HIJO #003 | PID: 6732] Armónico n =   3 procesado para los 64 puntos.
+...
+[HIJO #098 | PID: 6827] Armónico n =  98 procesado para los 64 puntos.
+[HIJO #099 | PID: 6828] Armónico n =  99 procesado para los 64 puntos.
+[HIJO #100 | PID: 6829] Armónico n = 100 procesado para los 64 puntos.
+
+[PADRE] Los 100 procesos hijos han completado el cálculo.
+[PADRE] Resultados guardados en el archivo 'fourier_aaron_64puntos.csv'.
+[PADRE] Recursos IPC (SHM y semáforos) liberados correctamente.
+====================================================================
+\end{lstlisting}
+
+La figura \ref{fig:cap03:aaron:terminal} es la captura de esa sesión en la terminal. Al comparar la salida de ejecuciones sucesivas, el archivo CSV resultó idéntico byte a byte: aunque el orden en que los hijos entran a la sección crítica cambia de una ejecución a otra, la diferencia que eso introduce al sumar números de punto flotante es de un orden muy inferior a los seis decimales con que se escribe el archivo.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{capitulos/cap03/figuras/cap03-aaron-terminal.png}
+        {\includegraphics[width=\textwidth]{cap03-aaron-terminal.png}}
+        {\fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Colocar aquí la captura de la terminal}}}
+    \caption{Compilación y ejecución del programa con 100 procesos hijos en la terminal.}
+    \label{fig:cap03:aaron:terminal}
+\end{figure}
+
+\subsubsection{Resultados obtenidos y gráfica}
+\label{sec:cap03:aaron:resultados}
+
+El padre escribe los 64 valores acumulados en \texttt{fourier\_aaron\_64puntos.csv}, un archivo de texto plano con dos columnas, \texttt{x} y \texttt{f\_fourier}, una fila por nodo y seis decimales. Ese archivo se importó en la hoja de cálculo de la fase anterior para generar la gráfica de la figura \ref{fig:cap03:aaron:fourier}.
+
+\Figura{cap03-aaron-fourier-c.png}{0.75}{Gráfica de $F_{100}(x)$ calculada en C con 100 procesos hijos, en los 64 nodos de $x = -3.1416$ a $x = 3.1584$.}{cap03:aaron:fourier}
+
+La gráfica cuenta cuatro cosas:
+
+\begin{itemize}
+    \item \textbf{Forma parabólica.} La curva es una parábola invertida. Su vértice no está en el origen sino en $x = \frac{1}{5}$, desplazado por el término lineal $\frac{1}{3}x$, y allí $f\left(\frac{1}{5}\right) = -0.2524$. Entre los nodos, el máximo de la serie es $-0.2530$ en $x = 0.1584$. Toda la curva es negativa, porque el máximo de la parábola ya es menor que cero.
+    \item \textbf{Muestreo discreto.} Cada marcador es uno de los 64 nodos; la línea sólo los une. En el interior del intervalo los nodos caen sobre la parábola y la curva es suave.
+    \item \textbf{Extremo izquierdo: fenómeno de Gibbs.} La función original vale $f(-\pi) \approx -9.5576$ y $f(\pi) \approx -7.4632$, de modo que al repetirla periódicamente aparece un salto de $-\frac{2\pi}{3} \approx -2.0944$ en cada múltiplo impar de $\pi$ \cite{kreyszig:matematicas-avanzadas:2011}. Una suma de senos y cosenos no puede reproducir un salto: en el salto converge al punto medio, $-\frac{5\pi^{2}}{6} - \frac{2}{7} \approx -8.5104$, y cerca de él oscila. Eso es lo que se ve en los primeros nodos: el nodo $x = -3.1416$ vale $-8.4767$, muy cerca del punto medio y lejos de $f(-\pi)$; el siguiente baja a $-9.0642$, por debajo de la función ($-9.0090$), y el tercero vuelve a quedar ligeramente por encima ($-8.4666$ frente a $-8.4771$). Las oscilaciones se amortiguan rápidamente al alejarse del salto.
+    \item \textbf{Extremo derecho.} El último nodo, $x = 3.1584$, queda $0.0168$ más allá de $\pi$, es decir, en el periodo siguiente, donde la serie ya describe el tramo que comienza en $-\pi$. Por eso la curva cae de $-7.0347$ a $-9.3902$ en el último paso: no es un error del programa sino el salto de la extensión periódica, cuyo valor del lado izquierdo, $f(3.1584 - 2\pi) = f(-3.1248) \approx -9.4642$, la serie de 100 armónicos ya casi alcanza.
+\end{itemize}
+
+\subsubsection{Comparación con las fases anteriores}
+\label{sec:cap03:aaron:comparacion}
+
+La tabla \ref{tab:cap03:aaron:comparacion} reúne, para diez de los 64 nodos, la función original $f(x)$ de los capítulos 1 y 2, la aproximación $F_{10}(x)$ de la hoja de cálculo del capítulo 2 y la aproximación $F_{100}(x)$ del programa en C. Los coeficientes son los mismos en las tres fases, pues provienen del desarrollo analítico del capítulo 1; lo único que cambia es el número de armónicos y la forma de calcularlos.
+
+\begin{table}[H]
+    \centering
+    \caption{Función original y aproximaciones con 10 armónicos (Excel) y 100 armónicos (C, 100 procesos), en diez de los 64 nodos.}
+    \label{tab:cap03:aaron:comparacion}
+    \begin{tabular}{rrrrrr}
+        \toprule
+        $x$ & $f(x)$ & $F_{10}(x)$ & $F_{100}(x)$ & $|f - F_{10}|$ & $|f - F_{100}|$ \\
+        \midrule
+        $-3.1416$ & $-9.5576$ & $-8.1931$ & $-8.4767$ & $1.3645$ & $1.0809$ \\
+        $-3.0416$ & $-9.0090$ & $-8.6570$ & $-9.0642$ & $0.3520$ & $0.0552$ \\
+        $-2.1416$ & $-4.8216$ & $-4.8333$ & $-4.8147$ & $0.0117$ & $0.0069$ \\
+        $-1.0416$ & $-1.5370$ & $-1.5734$ & $-1.5402$ & $0.0364$ & $0.0031$ \\
+        $-0.0416$ & $-0.3010$ & $-0.3012$ & $-0.3038$ & $0.0002$ & $0.0028$ \\
+        $0.9584$ & $-0.7317$ & $-0.6967$ & $-0.7349$ & $0.0350$ & $0.0032$ \\
+        $1.9584$ & $-2.8290$ & $-2.8769$ & $-2.8342$ & $0.0479$ & $0.0051$ \\
+        $2.9584$ & $-6.5930$ & $-6.7042$ & $-6.6239$ & $0.1112$ & $0.0309$ \\
+        $3.0584$ & $-7.0611$ & $-7.5498$ & $-7.0347$ & $0.4887$ & $0.0264$ \\
+        $3.1584$ & $-7.5458$ & $-8.3003$ & $-9.3902$ & $0.7545$ & $1.8444$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+En el interior del intervalo, $F_{100}$ se acerca a $f$ mucho más que $F_{10}$: los errores pasan de centésimas a milésimas. Para medirlo se usó el error cuadrático medio (MSE, \textit{mean squared error}) entre cada aproximación y $f(x)$, calculado sobre distintos subconjuntos de nodos (tabla \ref{tab:cap03:aaron:mse}).
+
+\begin{table}[H]
+    \centering
+    \caption{Error cuadrático medio respecto de $f(x)$ según la región de nodos considerada.}
+    \label{tab:cap03:aaron:mse}
+    \begin{tabular}{lrrr}
+        \toprule
+        Región & MSE de $F_{10}$ & MSE de $F_{100}$ & Mejora \\
+        \midrule
+        $|x| \le 2.5$ (50 nodos) & $1.40\times10^{-3}$ & $1.33\times10^{-5}$ & $\approx 106$ veces \\
+        $|x| \le \pi$ (62 nodos) & $9.63\times10^{-3}$ & $1.08\times10^{-4}$ & $\approx 89$ veces \\
+        Los 64 nodos & $4.73\times10^{-2}$ & $7.15\times10^{-2}$ & empeora \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La última fila se explica por el último nodo, que queda fuera de $[-\pi, \pi]$: ahí $f(x)$ sigue el polinomio ($-7.5458$), mientras que $F_{100}$ ya describe el periodo siguiente ($-9.3902$), de modo que ese solo nodo aporta un error de $1.84$ y domina el promedio. Comparar la serie con $f$ en ese punto no es significativo, y por eso la comparación razonable es la de las filas anteriores. Cerca del salto el error también disminuye con más armónicos, pero mucho más despacio: en $x = -3.1416$ pasa de $1.36$ a $1.08$, porque la serie converge allí al punto medio del salto y no a $f$. Este es el mismo comportamiento que se observó con diez armónicos en el capítulo 2, sólo que ahora la región afectada es diez veces más estrecha.
+
+Por último, se comprobó que la acumulación paralela es correcta. Los 64 valores del programa en C se contrastaron con una evaluación serial e independiente de la misma suma de 100 armónicos (script del anexo \ref{sec:cap03:anexo:python}): el error cuadrático medio entre ambos es de $7.4\times10^{-14}$ y la mayor diferencia absoluta es de $5.0\times10^{-7}$, es decir, media unidad del último decimal del archivo CSV. Esto confirma que el semáforo evitó las condiciones de carrera: si se hubiera perdido alguna de las cien contribuciones, la mayor diferencia sería como mínimo del orden de $10^{-3}$, pues incluso el armónico más pequeño, $n = 100$, aporta términos de hasta $b_{100} \approx 6.7\times10^{-3}$.
+
+% =====================================================================
+% 3.3 Análisis de la implementación con procesos
+% =====================================================================
+\section{Análisis de la implementación con procesos}
+\label{sec:cap03:analisis}
+
+% ---------------------------------------------------------------------
+\subsection{Implementación de Aarón Ugalde Téllez}
+\label{sec:cap03:aaron:implementacion}
+
+La tabla \ref{tab:cap03:aaron:caracteristicas} resume las características de la implementación de esta fase.
+
+\begin{table}[H]
+    \centering
+    \caption{Características de la implementación con procesos.}
+    \label{tab:cap03:aaron:caracteristicas}
+    \begin{tabular}{p{0.30\textwidth}p{0.60\textwidth}}
+        \toprule
+        \textbf{Característica} & \textbf{Especificación} \\
+        \midrule
+        Lenguaje & C, compilado con Apple clang 21.0.0 (invocado como \texttt{gcc}) \\
+        Sistema operativo & macOS 26.5 (Darwin, \texttt{arm64}) \\
+        Procesos & 1 padre y 100 hijos creados con \texttt{fork()} \\
+        Memoria compartida & System V: un segmento de 512 bytes (64 valores \texttt{double}) con \texttt{shmget}, \texttt{shmat}, \texttt{shmdt} y \texttt{shmctl} \\
+        Sincronización & Un semáforo System V binario (valor inicial 1) con \texttt{semget}, \texttt{semctl} y \texttt{semop} \\
+        Reparto del trabajo & Un armónico por proceso ($n = p$), evaluado en los 64 nodos: 128 evaluaciones trigonométricas por hijo \\
+        Sección crítica & 64 sumas en punto flotante por proceso; 100 entradas en total \\
+        Compilación & \texttt{gcc -Wall -O2 fourier\_aaron.c -o fourier\_aaron -lm}, sin errores ni advertencias \\
+        Salida & Archivo CSV de 64 filas (\texttt{x}, \texttt{f\_fourier}) con seis decimales \\
+        Tiempo de ejecución & Alrededor de 10 ms de tiempo de reloj (cinco ejecuciones medidas con \texttt{time}, resolución de 10 ms) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Lenguaje y técnica utilizados}
+\label{sec:cap03:aaron:tecnica}
+
+El lenguaje C es el adecuado para esta fase porque da acceso directo a las llamadas al sistema que se estudian (\texttt{fork}, \texttt{shmget}, \texttt{semop}) sin capas intermedias y se compila a código nativo, de modo que el costo que se observa es el del sistema operativo y no el de un intérprete \cite{kerrisk:linux-programming-interface:2010}. La biblioteca matemática aporta \texttt{sin} y \texttt{cos}, y se enlaza con \texttt{-lm}.
+
+La técnica es el paralelismo a nivel de procesos con memoria compartida explícita. Cada proceso hijo tiene su propio espacio de direcciones, de modo que nada se comparte si el programa no lo pide: por eso fue necesario crear el segmento de memoria compartida y un semáforo para proteger la escritura sobre él. Es una técnica más pesada que los hilos, porque crear un proceso implica duplicar las estructuras que describen su memoria, pero ofrece un aislamiento más fuerte: un error en un hijo no puede corromper la memoria de los demás \cite{tanenbaum:modern-os:2014}.
+
+\subsubsection{Cantidad de procesos}
+\label{sec:cap03:aaron:procesos}
+
+El programa crea 100 procesos hijos, que con el padre suman 101, sobre un equipo con 10 núcleos: a cada núcleo le tocan alrededor de diez procesos, de los cuales sólo uno se ejecuta a la vez y el planificador intercala a los demás. El sistema lo permite sin dificultad, pues el límite de procesos por usuario del equipo es 2666. Sin embargo, el trabajo de cada hijo es mínimo: 128 evaluaciones de seno y coseno, que toman microsegundos. Por ello, el tiempo total de alrededor de 10 ms corresponde sobre todo a crear, planificar y esperar a los procesos, no a calcular, y es de esperar que una versión serial del mismo cálculo, sin procesos, resulte más rápida. Esto no le resta valor a la fase, cuyo propósito es aprender a coordinar procesos con memoria compartida y semáforos; la ganancia real de velocidad llegaría con un trabajo por proceso mucho mayor que el costo de crearlo.
+
+\subsubsection{Equipo de cómputo}
+\label{sec:cap03:aaron:equipo}
+
+La tabla \ref{tab:cap03:aaron:hardware} presenta las características del equipo en el que se compiló y ejecutó el programa. Los valores de núcleos, memoria y cachés los reporta el propio sistema (\texttt{sysctl} y \texttt{system\_profiler}); Apple no publica la frecuencia de reloj ni la velocidad de sus cachés, por lo que para la frecuencia se cita una fuente externa.
+
+\begin{table}[H]
+    \centering
+    \caption{Especificaciones del equipo de cómputo empleado.}
+    \label{tab:cap03:aaron:hardware}
+    \begin{tabular}{p{0.30\textwidth}p{0.60\textwidth}}
+        \toprule
+        \textbf{Componente} & \textbf{Detalle} \\
+        \midrule
+        Equipo & MacBook Air (identificador \texttt{Mac17,3}) \\
+        Procesador & Apple M5, arquitectura \texttt{arm64} \\
+        Núcleos & 10: 4 de alto rendimiento (``super'') y 6 de eficiencia; un hilo por núcleo, sin multihilo simultáneo \\
+        Frecuencia & No publicada por Apple; hasta 4.4 GHz según EveryMac \cite{everymac:macbook-air-m5:2026} \\
+        Memoria RAM & 16 GB de memoria unificada LPDDR5 (Micron) \\
+        Ancho de banda de memoria & 153 GB/s, según Apple \cite{apple:macbook-air-specs:2026} \\
+        Caché L1, núcleos de alto rendimiento & 192 KB de instrucciones y 128 KB de datos, por núcleo \\
+        Caché L1, núcleos de eficiencia & 128 KB de instrucciones y 64 KB de datos, por núcleo \\
+        Caché L2 & 16 MB compartidos por los 4 núcleos de alto rendimiento; 6 MB compartidos por los 6 de eficiencia \\
+        Caché L3 & No reportada por el sistema \\
+        Línea de caché / página de memoria & 128 bytes / 16 KB \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+% =====================================================================
+% 3.4 Conclusiones del capítulo
+% =====================================================================
 \section{Conclusiones del capítulo}
-\label{sec:cap03onclusiones}
+\label{sec:cap03:conclusiones}
 
-Contenido pendiente.
+% PENDIENTE (otros integrantes): una subsección \subsection{Conclusión — Nombre}
+%   por integrante, siguiendo el mismo patrón que el capítulo 2.
+
+\subsection{Conclusión — Aarón Ugalde Téllez}
+\label{sec:cap03:concl:aaron}
+
+Esta práctica fue un ejercicio completo de cómputo paralelo: me permitió tender un puente entre el rigor de las series de Fourier y los retos prácticos de programar procesos concurrentes a bajo nivel en un sistema POSIX.
+
+Desde el análisis numérico, trabajar con $f(x) = -\frac{5}{6}x^2 + \frac{1}{3}x - \frac{2}{7}$ a lo largo de las tres fases me dio una comprensión más profunda de cómo se comporta la serie. Pasé de los cálculos analíticos a mano del capítulo 1 a la verificación en hoja de cálculo del capítulo 2 y, finalmente, a la reconstrucción con 100 procesos hijos en este capítulo. Ver cómo la superposición de 100 armónicos reproduce la curvatura cuadrática dentro de $[-\pi, \pi]$, y cómo en los extremos aparece el fenómeno de Gibbs, me dejó claro que la serie no converge a la función sino a su extensión periódica. El último nodo, que por quedar apenas fuera del intervalo ya pertenece al periodo siguiente, lo mostró de forma muy concreta. Esta base es la que sostiene gran parte del procesamiento de señales y de varias técnicas de aprendizaje automático.
+
+En el diseño de software concurrente, las llamadas al sistema convirtieron conceptos teóricos de sistemas operativos en herramientas de ingeniería. Crear 100 procesos con \texttt{fork()} hizo evidente la sobrecarga de duplicar el contexto de ejecución de un proceso, frente a los hilos: el cálculo de cada hijo dura microsegundos y el tiempo total lo domina la creación de procesos. La memoria compartida System V (\texttt{shmget}, \texttt{shmat}) me mostró cómo se rompe de forma controlada el aislamiento que el núcleo impone entre procesos.
+
+El reto más valioso fue la sincronización con semáforos. Acumular 100 contribuciones en un mismo vector sin exclusión mutua habría producido condiciones de carrera; con las operaciones atómicas $P$ y $V$ (\texttt{semop}) la acumulación resultó correcta, y lo comprobé al comparar la salida paralela con una evaluación serial, que coincidió hasta el sexto decimal. Coordinar a los 100 procesos sin bloqueos mutuos ni procesos zombis, y liberar al final los recursos IPC, exigió disciplina en el control de flujo. Incluso un detalle como la unión \texttt{semun}, que glibc deja al programador y macOS trae en su encabezado, me recordó que la portabilidad entre sistemas POSIX requiere atención.
+
+Como estudiante de Ingeniería en Inteligencia Artificial, estoy acostumbrado a abstraer los algoritmos complejos en bibliotecas de alto nivel; no obstante, esta fase me recordó la importancia de entender las capas inferiores: la planificación del núcleo, la memoria y el costo real de la concurrencia. Dominar la programación paralela a bajo nivel en C es una base indispensable para optimizar flujos de datos, diseñar motores de inferencia eficientes y construir arquitecturas distribuidas que escalen.
+
+% =====================================================================
+% 3.6 Anexos
+% =====================================================================
+\section{Anexos}
+\label{sec:cap03:anexos}
+
+En esta sección se colocan los códigos generados en la fase 3 (programación con procesos, capítulo 3).
+
+\subsection{Fase 3: código de \texttt{fourier\_aaron.c}}
+\label{sec:cap03:anexo:c}
+
+Programa de Aarón Ugalde Téllez que calcula la Serie de Fourier con 100 procesos hijos, memoria compartida y semáforos System V.
+
+\lstinputlisting[style=C, caption={Programa \texttt{fourier\_aaron.c}.}, label={lst:cap03:anexo:c}]{capitulos/cap03/codigo/fourier_aaron.c}
+
+\subsection{Fase 3: código de \texttt{verificacion\_serie.py}}
+\label{sec:cap03:anexo:python}
+
+Script en Python de Aarón Ugalde Téllez que evalúa la misma suma de forma serial y calcula los errores de las tablas \ref{tab:cap03:aaron:comparacion} y \ref{tab:cap03:aaron:mse}.
+
+\lstinputlisting[language=Python, caption={Script \texttt{verificacion\_serie.py}.}, label={lst:cap03:anexo:python}]{capitulos/cap03/codigo/verificacion_serie.py}

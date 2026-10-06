@@ -1,0 +1,483 @@
+% =====================================================================
+%  Práctica 2 — contenido
+%
+%  Sólo el cuerpo de la práctica: sin preámbulo, sin \begin{document},
+%  sin portada, sin índices y sin bibliografía (los pone el documento
+%  contenedor: practicas/prac02.tex).
+%
+%  IMPORTANTE: las prácticas son ENTREGAS INDEPENDIENTES del libro.
+%  Este archivo NUNCA se incluye en libro.tex ni en capitulos/capNN.
+%
+%  Convenciones:
+%   * Etiquetas: fig:prac02:..., sec:prac02:...
+%   * Referencias: \cite{clave} usando las claves de bib/referencias.bib
+%
+%  ORIGEN DEL CONTENIDO — este archivo fusiona las partes de los cuatro
+%  integrantes del equipo. La autoría de cada bloque está marcada con
+%  comentarios en el propio texto:
+%   * Said Carbot Cruz Trejo        — resumen, introducción, tipos de
+%                                     datos, formato del archivo
+%   * Magaly López Castro           — procesos en sistemas operativos
+%   * Lino Ehecatl Romero Rosales   — manejo de archivos, arquitectura
+%   * Aarón Ugalde Téllez           — desarrollo del código,
+%                                     evidencias, anexos
+%  Cada integrante aporta además su conclusión individual.
+%  Los listados de los anexos leen practicas/prac02/*.c y Makefile.
+% =====================================================================
+
+\chapter{\TituloPracDos}
+\label{prac:02}
+
+% ---------------------------------------------------------------------
+%  Resumen e Introducción (Said Carbot Cruz Trejo)
+% ---------------------------------------------------------------------
+
+\section{Resumen}
+\label{sec:prac02:resumen}
+
+En la presente práctica se diseña e implementa un sistema concurrente en lenguaje C utilizando la interfaz para la gestión de procesos. El objetivo principal es paralelizar una tarea de procesamiento de datos: la extracción y multiplicación matemática de las columnas de una matriz de tamaño $3 \times 9$. Mediante el uso de la llamada al sistema \texttt{fork()}, un proceso padre orquesta la creación de nueve procesos hijos independientes, asignando a cada uno la carga de trabajo de una columna específica. Para cumplir con las reglas de negocio, la comunicación y persistencia se realiza de forma exclusiva a través de archivos de texto plano, prescindiendo del uso de sockets, memoria compartida o bases de datos. El sistema garantiza la sincronización final mediante la instrucción \texttt{wait()}, consolidando los resultados en un archivo de salida de manera ordenada. Este enfoque demuestra los fundamentos de la distribución de cargas computacionales y el control de concurrencia a nivel de sistema operativo.
+
+\section{Introducción}
+\label{sec:prac02:introduccion}
+
+El diseño de algoritmos concurrentes es una competencia clave en la ingeniería de software y el cómputo de alto rendimiento, áreas fundamentales para disciplinas que manejan cálculos intensivos y grandes volúmenes de datos. En el entorno de sistemas operativos basados en UNIX, la creación de procesos a través de la clonación con \texttt{fork()} representa uno de los mecanismos más robustos para lograr la ejecución paralela \cite{marquez:unix-programacion:2015}.
+
+A diferencia del manejo de hilos, los procesos generados poseen su propio espacio de direcciones de memoria protegido. Esto proporciona un alto nivel de aislamiento y seguridad durante la ejecución, pero exige estrategias específicas para compartir información y consolidar resultados. En este proyecto se aborda un problema de paralelismo de datos aplicado a una estructura matricial. La estrategia de resolución consiste en delegar la extracción y el procesamiento de cada columna a un proceso hijo distinto, reduciendo teóricamente el tiempo de ejecución en arquitecturas con múltiples núcleos. Para mantener la persistencia y coordinar la salida, se utilizan archivos de texto estándar como medio de intercambio, demostrando cómo orquestar múltiples procesos asegurando la integridad de la información mediante una sincronización adecuada por parte del proceso padre.
+
+% ---------------------------------------------------------------------
+%  Marco teórico
+% ---------------------------------------------------------------------
+
+\section{Marco teórico}
+\label{sec:prac02:marco-teorico}
+
+El guion de la práctica pide investigar tres temas de sistemas operativos y programación en lenguaje C: los tipos de datos, los procesos y los archivos. Las subsecciones siguientes los desarrollan en ese orden, comenzando por la representación de la matriz y el formato del archivo que la almacena.
+
+% ---------------------------------------------------------------------
+%  Temas de Said Carbot Cruz Trejo
+% ---------------------------------------------------------------------
+
+\subsection{Tipos de datos y representación de matrices en C}
+\label{sec:prac02:tipos-datos}
+En el lenguaje C, los tipos de datos primitivos determinan la cantidad de memoria asignada a una variable y la forma en que la Unidad Aritmético Lógica (ALU) interpreta sus bits. Para el procesamiento matemático de esta práctica, se utilizan tipos enteros (\texttt{int}), los cuales típicamente ocupan 4 bytes en arquitecturas modernas y permiten el almacenamiento exacto de los factores extraídos y los productos calculados.
+
+Una matriz bidimensional en C se define sintácticamente como un arreglo de arreglos (por ejemplo, \texttt{int matriz[3][9]}) \cite{w3schools:c-arrays-multi:2026}. Sin embargo, a nivel de arquitectura, la memoria de una computadora es lineal y unidimensional. Por lo tanto, el compilador de C implementa el almacenamiento de matrices utilizando el formato de ``orden principal por filas'' (\textit{row-major order}). Esto significa que los elementos de la primera fila se almacenan en direcciones de memoria contiguas, seguidos inmediatamente por los elementos de la segunda fila, y así sucesivamente. Para acceder de manera interna al elemento en la posición $(i, j)$, el lenguaje calcula el desplazamiento utilizando la fórmula:
+\[ \text{Dirección} = \text{Base} + (i \times \text{Total\_Columnas} + j) \times \text{Tamaño\_Tipo\_Dato} \]
+Esta representación es sumamente eficiente para recorrer filas, pero requiere un diseño algorítmico de lectura específico cuando el procesamiento se distribuye y fragmenta por columnas de manera concurrente.
+
+\subsection{Formato de almacenamiento del archivo de matriz}
+\label{sec:prac02:formato}
+Dado que la comunicación entre los procesos no emplea sockets, tuberías (\textit{pipes}) ni gestores de bases de datos, la estructura física del archivo de texto plano actúa como el único puente de datos. El programa inicial (o el proceso padre) almacena la matriz de $3 \times 9$ en un formato tabular estructurado en código ASCII, delimitado por caracteres de control.
+
+Específicamente, el formato de almacenamiento consiste en tres líneas de texto separadas por secuencias de escape de salto de línea (\texttt{\textbackslash n}). En cada línea, los nueve valores numéricos están delimitados de manera estricta por un espacio en blanco. Visualmente y a nivel de bytes, el archivo se compone de la siguiente manera:
+
+\[
+\begin{bmatrix}
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 \\
+1 & 3 & 5 & 7 & 9 & 11 & 13 & 15 & 17 \\
+2 & 4 & 6 & 8 & 10 & 12 & 14 & 16 & 18
+\end{bmatrix}
+\]
+
+Este formato de almacenamiento secuencial permite que cada uno de los 9 procesos hijos abra el archivo en modo de solo lectura (\texttt{"r"}). Utilizando funciones estándar de la biblioteca \texttt{<stdio.h>}, como \texttt{fscanf()} o \texttt{fgets()} en combinación con \texttt{strtok()}, cada hijo puede posicionarse en el flujo del archivo, saltar los valores irrelevantes, y extraer iterativamente solo el $n$-ésimo token de cada fila que corresponda exclusivamente a su columna asignada. Esta simplicidad estructural evita la necesidad de implementar librerías de parseo complejas, manteniendo la lectura paralela segura y concurrente.
+
+% ---------------------------------------------------------------------
+%  Temas de Magaly López Castro
+% ---------------------------------------------------------------------
+
+\subsection{Procesos en sistemas operativos}
+\label{sec:prac02:procesos}
+
+En el ámbito de los sistemas operativos (SO), un proceso se define fundamentalmente como un programa en ejecución. Sin embargo, es más que simplemente el código del programa (a menudo denominado sección de texto); incluye la actividad actual representada por el valor del contador de programa (\textit{Program Counter}) y el contenido de los registros del procesador. Además, un proceso generalmente incluye la pila (\textit{stack}) del proceso, que contiene datos temporales como parámetros de funciones, direcciones de retorno y variables locales, y una sección de datos que contiene variables globales \cite{silberschatz:os-concepts:2018}.
+
+\subsubsection{Identificadores de procesos (PID y PPID)}
+
+Para gestionar la multiplicidad de procesos que coexisten en un sistema, el sistema operativo debe poder identificarlos de manera unívoca.
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{PID (\textit{Process Identifier}):} es un número entero único asignado por el sistema operativo en el momento de la creación del proceso. El SO utiliza el PID para rastrear el proceso y gestionar la asignación de recursos, permisos y la planificación (\textit{scheduling}) \cite{kerrisk:linux-programming-interface:2010}.
+    \item \textbf{PPID (\textit{Parent Process Identifier}):} los procesos en la mayoría de los sistemas operativos modernos se crean jerárquicamente. El proceso que crea un nuevo proceso se denomina proceso padre. El PPID es el identificador del proceso padre. Esta estructura de árbol es esencial para la gestión de recursos y la herencia de propiedades, así como para la propagación de señales en sistemas similares a UNIX \cite{tanenbaum:modern-os:2014}.
+\end{itemize}
+
+\subsubsection{Llamadas al sistema para el control de procesos}
+
+La interfaz entre los procesos en el espacio de usuario y el núcleo (\textit{kernel}) del sistema operativo se realiza a través de llamadas al sistema (\textit{system calls}). Para la gestión del ciclo de vida de los procesos en sistemas compatibles con POSIX (como Linux y macOS), destacan cuatro funciones fundamentales \cite{kerrisk:linux-programming-interface:2010}:
+
+\begin{itemize}[leftmargin=*]
+    \item \texttt{fork()}: esta llamada al sistema se utiliza para crear un nuevo proceso. El proceso creado (hijo) es una copia casi exacta del proceso creador (padre). Ambos procesos continúan su ejecución en la instrucción que sigue al \texttt{fork()}. La diferencia clave radica en el valor de retorno de la función: devuelve el PID del hijo al proceso padre, y devuelve $0$ al proceso hijo, permitiendo que ambos ejecuten bloques lógicos distintos.
+    \item \texttt{exit()}: utilizada para terminar la ejecución de un proceso de manera normal. Cuando un proceso llama a \texttt{exit()}, el SO libera los recursos asignados a él (memoria, archivos abiertos, etc.). El proceso envía un código de estado (\textit{status}) de terminación a su proceso padre.
+    \item \texttt{wait()}: un proceso padre utiliza \texttt{wait()} para suspender su propia ejecución hasta que uno de sus procesos hijos termine. Si el hijo ya ha terminado (convirtiéndose temporalmente en un proceso ``zombie''), \texttt{wait()} retorna inmediatamente con el estado de terminación del hijo, permitiendo al sistema limpiar la entrada del hijo en la tabla de procesos \cite{stallings:os-internals:2017}.
+    \item \texttt{waitpid()}: proporciona una versión extendida de \texttt{wait()}. Permite al proceso padre especificar exactamente por qué proceso hijo desea esperar, utilizando su PID. Además, ofrece opciones para no bloquear la ejecución (espera no bloqueante) si el hijo aún no ha cambiado de estado.
+\end{itemize}
+
+\subsubsection{Ciclo de vida de los procesos}
+
+Desde su creación hasta su terminación, un proceso transita por diversos estados. Aunque los modelos pueden variar según el SO, el modelo genérico de cinco estados es el más aceptado \cite{silberschatz:os-concepts:2018}:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Nuevo (\textit{New}):} el proceso está siendo creado por el sistema operativo, pero aún no ha sido admitido en el grupo de procesos ejecutables.
+    \item \textbf{Listo (\textit{Ready}):} el proceso está en la memoria principal y está disponible para su ejecución, esperando que el planificador (\textit{scheduler}) del SO le asigne tiempo de CPU.
+    \item \textbf{En ejecución (\textit{Running}):} las instrucciones del proceso están siendo ejecutadas actualmente por la CPU.
+    \item \textbf{Bloqueado o en espera (\textit{Waiting/Blocked}):} el proceso no puede continuar ejecutándose porque está esperando que ocurra un evento externo (como la finalización de una operación de entrada/salida o la recepción de una señal).
+    \item \textbf{Terminado (\textit{Terminated}):} el proceso ha finalizado su ejecución (ya sea normalmente vía \texttt{exit()} o por un error) y el sistema operativo está reclamando sus recursos.
+\end{enumerate}
+
+\subsubsection{Concurrencia frente a paralelismo a nivel de sistema operativo}
+
+Es fundamental distinguir entre concurrencia y paralelismo en la teoría de sistemas operativos, aunque a menudo se utilizan indistintamente de manera errónea \cite{tanenbaum:modern-os:2014}.
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Concurrencia:} es la capacidad del SO para manejar múltiples procesos al mismo tiempo mediante la técnica de multiplexación en el tiempo. En un sistema de un solo procesador (un solo núcleo), la CPU intercala la ejecución de varios procesos, ejecutando un proceso por un breve lapso (\textit{quantum} de tiempo) y luego cambiando a otro (cambio de contexto). Esto crea la \textit{ilusión} de ejecución simultánea, aunque en realidad las instrucciones se ejecutan secuencialmente.
+    \item \textbf{Paralelismo:} implica la ejecución física simultánea de múltiples procesos o hilos de un proceso. Para que exista paralelismo real a nivel de hardware, el sistema debe poseer múltiples unidades de procesamiento (procesadores multinúcleo o sistemas multiprocesador). En este escenario, dos o más procesos ejecutan sus instrucciones en el mismo instante temporal en núcleos diferentes \cite{stallings:os-internals:2017}.
+\end{itemize}
+
+\subsubsection{Sincronización de procesos}
+
+En entornos concurrentes o paralelos, los procesos a menudo necesitan compartir recursos (memoria, archivos, dispositivos). Cuando varios procesos intentan acceder y modificar datos compartidos de manera no coordinada, se pueden producir inconsistencias, un fenómeno conocido como \textit{condición de carrera} (\textit{race condition}) \cite{silberschatz:os-concepts:2018}.
+
+La \textbf{sincronización de procesos} es el conjunto de mecanismos proporcionados por el SO para controlar el orden de ejecución de los procesos y garantizar la integridad de los datos compartidos. El objetivo principal es resolver el problema de la \textit{sección crítica}, que es la parte del código de un proceso donde se accede al recurso compartido.
+
+Para lograr la sincronización, los SO implementan herramientas como:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Mutua exclusión (\textit{mutex}):} bloqueos que garantizan que solo un proceso a la vez pueda entrar en su sección crítica.
+    \item \textbf{Semáforos:} variables enteras que, mediante operaciones atómicas especializadas (\texttt{wait()} y \texttt{signal()}, también conocidas como $P$ y $V$), controlan el acceso a recursos que pueden tener un número limitado de instancias permitidas.
+\end{itemize}
+Sin una adecuada sincronización, los sistemas concurrentes serían inestables, llevando a bloqueos mutuos (\textit{deadlocks}) o corrupción de información \cite{tanenbaum:modern-os:2014}.
+
+% ---------------------------------------------------------------------
+%  Temas de Lino Ehecatl Romero Rosales
+% ---------------------------------------------------------------------
+
+\subsection{Manejo de archivos en C}
+\label{sec:prac02:archivos}
+
+El lenguaje C proporciona un conjunto de funciones dentro de su biblioteca estándar para la manipulación de archivos, permitiendo la persistencia de datos mediante flujos \cite{marquez:unix-programacion:2015}. Debido a las restricciones de diseño que impiden el uso de gestores de bases de datos, el almacenamiento y recuperación de la información del sistema dependerá exclusivamente de las siguientes operaciones de entrada y salida a nivel de archivo:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{\texttt{fopen()}:} esta función abre un archivo y lo asocia a un flujo. Devuelve un puntero de tipo \texttt{FILE} que funciona como identificador para todas las operaciones subsecuentes sobre dicho archivo. En caso de que la apertura falle, la función devuelve \texttt{NULL}.
+    \item \textbf{Modos de apertura:} el segundo parámetro de \texttt{fopen()} define el tipo de acceso permitido:
+    \begin{itemize}
+        \item \texttt{"r"} (\textit{read}): abre el archivo en modo de solo lectura. Requiere que el archivo ya exista.
+        \item \texttt{"w"} (\textit{write}): abre el archivo en modo de escritura. Si el archivo existe, sobrescribe su contenido truncándolo a cero. Si no existe, lo crea.
+        \item \texttt{"a"} (\textit{append}): abre el archivo para añadir datos al final del mismo, conservando el contenido previo.
+    \end{itemize}
+    \item \textbf{\texttt{fprintf()}:} opera de manera idéntica a \texttt{printf()}, con la diferencia de que escribe la salida formateada directamente en el flujo del archivo especificado.
+    \item \textbf{\texttt{fscanf()}:} diseñada para leer datos formateados desde un flujo de archivo. Resulta esencial para extraer la información previamente almacenada y cargarla en memoria.
+    \item \textbf{\texttt{fclose()}:} cierra el flujo asociado al archivo, vaciando (\textit{flushing}) el búfer de salida y liberando los recursos del sistema operativo. Es crítico invocarla para evitar la corrupción de datos.
+\end{itemize}
+
+% ---------------------------------------------------------------------
+%  Arquitectura del sistema (Lino Ehecatl Romero Rosales)
+% ---------------------------------------------------------------------
+
+\section{Arquitectura del sistema de procesos múltiples}
+\label{sec:prac02:arquitectura}
+
+El diseño del sistema se fundamenta en un modelo de concurrencia basado en la creación de múltiples procesos utilizando el estándar POSIX del lenguaje C \cite{marquez:unix-programacion:2015}. Dado que las reglas de negocio prohíben explícitamente el uso de \textit{sockets} para la comunicación entre procesos y de bases de datos para el almacenamiento, la arquitectura se sostiene sobre la bifurcación de procesos en el sistema operativo y la concurrencia controlada sobre el sistema de archivos local.
+
+La arquitectura se divide en dos componentes técnicos principales: el proceso padre y los procesos hijos.
+
+\subsection{El proceso padre}
+El proceso principal actúa como el controlador del sistema. Sus responsabilidades arquitectónicas son:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Validación:} verifica que exista el archivo de entrada y comprueba el resultado de cada operación que puede fallar (apertura de archivos, lectura, escritura y creación de procesos). El sistema no captura datos del usuario por consola: la matriz y los nombres de archivo son constantes del programa.
+    \item \textbf{Bifurcación (\texttt{fork()}):} utiliza la llamada al sistema \texttt{fork()} para clonar su espacio de direcciones y generar los procesos hijos \cite{marquez:unix-programacion:2015}.
+    \item \textbf{Sincronización (\texttt{wait()}):} para evitar la proliferación de procesos \textit{zombies}, el padre suspende su ejecución mediante la función \texttt{wait()} hasta que todos los procesos hijos han reportado su terminación.
+\end{itemize}
+
+\subsection{Los procesos hijos}
+Cada proceso hijo asume un ciclo de vida independiente, con una copia propia del espacio de direcciones del padre.
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Ejecución paralela:} al evaluar el valor de retorno \texttt{0} tras la llamada a \texttt{fork()}, el flujo de control del hijo se activa para ejecutar su lógica de negocio de manera concurrente.
+    \item \textbf{Gestión de entradas y salidas:} el intercambio indirecto de información y la persistencia del estado se realizan abriendo los archivos compartidos mediante \texttt{fopen()} y registrando los resultados con \texttt{fprintf()}.
+    \item \textbf{Finalización (\texttt{exit()}):} al concluir su trabajo, el proceso hijo invoca \texttt{exit()} para liberar su memoria y notificar su término exitoso mediante la señal \texttt{SIGCHLD}.
+\end{itemize}
+
+% ---------------------------------------------------------------------
+%  Desarrollo del código (Aarón Ugalde Téllez)
+% ---------------------------------------------------------------------
+
+\section{Desarrollo del código}
+\label{sec:prac02:desarrollo}
+
+Esta sección describe el análisis, el diseño y la implementación de los programas escritos en lenguaje C que resuelven la práctica, a partir de la arquitectura presentada en la sección \ref{sec:prac02:arquitectura}. El código completo se encuentra en los anexos (sección \ref{sec:prac02:anexos}).
+
+\subsection{Análisis del problema}
+\label{sec:prac02:analisis}
+
+El enunciado pide un sistema de procesos que lea un archivo con una matriz de tres filas y nueve columnas, calcule el producto de los elementos de cada columna y guarde los resultados en otro archivo. Los datos de la matriz y su formato en el archivo se presentaron en la sección \ref{sec:prac02:formato}.
+
+El cálculo de una columna no necesita ningún dato de las demás, por lo que el problema es \emph{naturalmente paralelizable}: se puede asignar una columna a cada proceso y todos pueden trabajar al mismo tiempo sin comunicarse durante el cálculo. Con nueve columnas se requieren nueve procesos hijos. La tabla \ref{tab:prac02:productos} muestra el resultado esperado de cada columna, calculado a mano, que sirve para verificar la salida de los programas.
+
+\begin{table}[H]
+    \centering
+    \caption{Productos esperados por columna de la matriz.}
+    \label{tab:prac02:productos}
+    \begin{tabular}{ccl}
+        \toprule
+        \textbf{Columna} & \textbf{Elementos} & \textbf{Producto} \\
+        \midrule
+        1 & $1 \cdot 1 \cdot 2$ & 2 \\
+        2 & $2 \cdot 3 \cdot 4$ & 24 \\
+        3 & $3 \cdot 5 \cdot 6$ & 90 \\
+        4 & $4 \cdot 7 \cdot 8$ & 224 \\
+        5 & $5 \cdot 9 \cdot 10$ & 450 \\
+        6 & $6 \cdot 11 \cdot 12$ & 792 \\
+        7 & $7 \cdot 13 \cdot 14$ & 1274 \\
+        8 & $8 \cdot 15 \cdot 16$ & 1920 \\
+        9 & $9 \cdot 17 \cdot 18$ & 2754 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Diseño de la solución}
+\label{sec:prac02:diseno}
+
+La solución se dividió en dos programas independientes, que se compilan con un mismo \texttt{Makefile}:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{\texttt{programa1}}: crea el archivo \texttt{matriz.txt} y guarda en él la matriz, una fila por línea y con los elementos separados por espacios.
+    \item \textbf{\texttt{programa2}}: es el proceso padre. Crea el archivo de resultados, genera un proceso hijo por cada columna, espera a que todos terminen y muestra el contenido del archivo de resultados.
+\end{itemize}
+
+El flujo de \texttt{programa2} sigue el orden que pide el enunciado:
+
+\begin{enumerate}[leftmargin=*]
+    \item El padre verifica que exista \texttt{matriz.txt}; si no existe, avisa que debe ejecutarse primero el programa 1 y termina.
+    \item El padre crea (o vacía) el archivo \texttt{resultados.txt}.
+    \item El padre crea nueve procesos hijos con \texttt{fork()}, uno por columna, e informa a cada uno qué columna le toca.
+    \item Cada hijo abre \texttt{matriz.txt}, extrae los datos, multiplica los elementos de su columna y agrega el resultado a \texttt{resultados.txt}.
+    \item El padre espera con \texttt{wait()} a que terminen los nueve hijos y revisa el estado de salida de cada uno.
+    \item El padre lee \texttt{resultados.txt} y muestra su contenido en pantalla.
+\end{enumerate}
+
+Como la práctica prohíbe el uso de \emph{sockets}, no hay comunicación directa entre procesos. La información fluye únicamente por dos vías: el número de columna, que el hijo recibe al momento de su creación, y los archivos, que sirven como medio compartido para los datos de entrada y los resultados.
+
+\subsection{Programa 1: creación del archivo de la matriz}
+\label{sec:prac02:programa1}
+
+El programa 1 (código \ref{lst:prac02:programa1}) declara la matriz como un arreglo bidimensional de enteros de $3 \times 9$, inicializado con los valores del enunciado, y las dimensiones se definen con constantes (\texttt{FILAS} y \texttt{COLUMNAS}) para evitar números fijos repartidos por el código. Abre \texttt{matriz.txt} en modo escritura (\texttt{"w"}), con lo que el archivo se crea si no existe y se sobrescribe si ya existía, y escribe cada elemento con \texttt{fprintf()}, separando las columnas con un espacio y las filas con un salto de línea. Al no dejar un espacio al final de cada fila, el archivo queda con el mismo formato que la matriz impresa en el enunciado.
+
+Se validan los dos puntos donde es más probable que haya un error: la apertura del archivo (con \texttt{perror()} para mostrar la causa) y la escritura de cada elemento con \texttt{fprintf()}, cuyo valor de retorno negativo indica un fallo. Ante cualquier error el programa cierra el archivo, si ya estaba abierto, y termina con \texttt{EXIT\_FAILURE}. Si todo salió bien, muestra un mensaje de confirmación.
+
+\subsection{Programa 2: proceso padre y procesos hijos}
+\label{sec:prac02:programa2}
+
+\subsubsection{Proceso padre}
+El padre (función \texttt{main} del código \ref{lst:prac02:programa2}) primero comprueba que \texttt{matriz.txt} exista, abriéndolo en modo lectura, y a continuación abre \texttt{resultados.txt} en modo \texttt{"w"} y lo cierra de inmediato. Este paso deja el archivo vacío antes de que existan los hijos, de forma que los resultados de una ejecución anterior no se mezclen con los actuales y que ningún hijo tenga que decidir si debe borrar el archivo, lo cual podría destruir lo que ya escribió otro hijo.
+
+Después, un ciclo crea un hijo por columna:
+
+\begin{lstlisting}[style=C]
+for (int col = 0; col < COLUMNAS; col++) {
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("[PADRE] Error al ejecutar fork()");
+        return EXIT_FAILURE;
+    } else if (pid == 0) {
+        // Proceso Hijo
+        tarea_hijo(col);
+    }
+}
+\end{lstlisting}
+
+La llamada \texttt{fork()} devuelve un valor negativo si falló, cero en el proceso hijo y el PID del hijo en el padre. Cuando el valor es cero, el hijo ejecuta \texttt{tarea\_hijo(col)}, que termina con \texttt{exit()} y por lo tanto nunca regresa al ciclo. Esto es importante: si los hijos continuaran ejecutando el ciclo, cada uno crearía a su vez más procesos. Así, es el padre el único que completa las nueve iteraciones.
+
+La forma de informar a cada hijo qué columna le toca aprovecha el propio mecanismo de \texttt{fork()}: el hijo nace con una copia de la memoria del padre, incluida la variable \texttt{col} con el valor que tenía en el momento de la llamada, y ese valor se entrega como argumento a \texttt{tarea\_hijo()}.
+
+Justo antes del ciclo, el padre imprime el mensaje «Creando 9 procesos hijos» y llama a \texttt{fflush(\allowbreak stdout)}. Esta llamada es necesaria porque, cuando la salida estándar no es una terminal (por ejemplo, si se redirige a un archivo o a otro comando), el sistema la mantiene en un búfer y no la imprime hasta que se llena o el programa termina. Como \texttt{fork()} copia también ese búfer, cada uno de los nueve hijos heredaría el mensaje aún sin imprimir y lo volcaría al ejecutar \texttt{exit()}, con lo que el texto aparecería diez veces en lugar de una. Vaciar el búfer antes de crear a los hijos evita esa repetición.
+
+Una vez creados todos los hijos, otro ciclo llama nueve veces a \texttt{wait()}, que bloquea al padre hasta que termina cualquiera de sus hijos. Con el estado devuelto se verifica, con \texttt{WIFEXITED} y \texttt{WEXITSTATUS}, que el hijo haya terminado normalmente y con código cero; si no fue así, se muestra una advertencia con el PID del hijo afectado. Finalmente, el padre abre \texttt{resultados.txt} en modo lectura, imprime su contenido línea por línea con \texttt{fgets()} y termina.
+
+\subsubsection{Proceso hijo}
+La función \texttt{tarea\_hijo()} realiza el trabajo de cada hijo en tres pasos. Primero abre \texttt{matriz.txt} en modo lectura y carga la matriz completa con \texttt{fscanf()}, validando que cada lectura devuelva exactamente un dato. Aunque cada hijo sólo necesita una columna, el archivo está escrito por filas y el formato de texto obliga a recorrerlo completo para llegar a los elementos de una columna dada. Segundo, multiplica los elementos de esa columna:
+
+\begin{lstlisting}[style=C]
+long long producto = 1;
+for (int i = 0; i < FILAS; i++) {
+    producto *= matriz[i][col];
+}
+\end{lstlisting}
+
+El producto se acumula en una variable \texttt{long long}, que tiene un rango mucho mayor que un \texttt{int} y evita desbordamientos si los valores o el tamaño de la matriz crecen. Tercero, abre \texttt{resultados.txt} en modo agregar (\texttt{"a"}) y escribe una línea con el formato \texttt{Columna N: producto}. El modo \texttt{"a"} hace que cada escritura se agregue al final del archivo, lo que permite que los nueve hijos escriban en el mismo archivo sin sobrescribirse entre sí. Al terminar, el hijo cierra el archivo y sale con \texttt{EXIT\_SUCCESS}, o con \texttt{EXIT\_FAILURE} si algún paso falló, información que el padre recupera con \texttt{wait()}.
+
+Como todos los hijos se ejecutan de forma concurrente, el orden en que escriben sus líneas depende del planificador del sistema operativo y puede variar entre ejecuciones. Por esa razón cada línea lleva el número de columna, de modo que el resultado se interpreta correctamente sin importar el orden de llegada.
+
+\subsection{Compilación con \texttt{Makefile}}
+\label{sec:prac02:makefile}
+
+La compilación se automatiza con un \texttt{Makefile} (código \ref{lst:prac02:makefile}) que define el compilador (\texttt{gcc}) y las banderas \texttt{-Wall -Wextra -std=c11}, con las que se activan las advertencias más importantes para que el código compile sin errores ni avisos, como pide la práctica. El objetivo \texttt{all}, que es el predeterminado, construye los dos ejecutables, cada uno con su propia regla de dependencia de su archivo fuente. El objetivo \texttt{clean} borra los ejecutables y los archivos de datos generados, y ambos objetivos se declaran como \texttt{.PHONY} para que \texttt{make} los ejecute aunque exista un archivo con el mismo nombre.
+
+Para usar el sistema se compila con \texttt{make} y se ejecutan en orden \texttt{./programa1} y \texttt{./programa2}, porque el segundo depende del archivo que crea el primero.
+
+\subsection{Validaciones}
+\label{sec:prac02:validaciones}
+
+Los programas no piden datos al usuario, ya que la matriz está fija en el código y los nombres de archivo son constantes. Por ello la validación se concentró en las operaciones que pueden fallar durante la ejecución: apertura de archivos (\texttt{fopen()}), lectura (\texttt{fscanf()}), escritura (\texttt{fprintf()}), creación de procesos (\texttt{fork()}) y estado de terminación de los hijos (\texttt{wait()}). Además, el programa 2 verifica al inicio que exista el archivo de entrada y, en caso contrario, indica al usuario cómo resolver el problema.
+
+% ---------------------------------------------------------------------
+%  Evidencias de compilación y ejecución
+% ---------------------------------------------------------------------
+
+\section{Evidencias de compilación y ejecución}
+\label{sec:prac02:evidencias}
+
+Las evidencias de esta sección se obtuvieron en un equipo Apple Silicon (arquitectura \texttt{arm64}) con macOS, donde el comando \texttt{gcc} corresponde al compilador Apple clang 21 de las herramientas de línea de comandos del sistema. Los archivos fuente son los mismos que se listan en los anexos (sección \ref{sec:prac02:anexos}).
+
+\subsection{Compilación con \texttt{make}}
+\label{sec:prac02:evid-compilacion}
+
+Desde el directorio de la práctica se ejecuta \texttt{make}. El \texttt{Makefile} invoca a \texttt{gcc} con las banderas \texttt{-Wall -Wextra -std=c11} para cada programa. Como muestra el código \ref{lst:prac02:salida-make}, la compilación termina sin errores ni advertencias: no aparece ningún mensaje del compilador más allá de los dos comandos ejecutados, y \texttt{make} devuelve código de salida cero.
+
+\begin{lstlisting}[numbers=none, language={}, caption={Compilación de los dos programas con \texttt{make}.}, label={lst:prac02:salida-make}]
+$ make
+gcc -Wall -Wextra -std=c11 -o programa1 programa1.c
+gcc -Wall -Wextra -std=c11 -o programa2 programa2.c
+\end{lstlisting}
+
+\subsection{Ejecución del programa 1}
+\label{sec:prac02:evid-programa1}
+
+El programa 1 crea el archivo \texttt{matriz.txt}. Al mostrar su contenido con \texttt{cat} (código \ref{lst:prac02:salida-programa1}) se comprueba que la matriz quedó guardada como se describió en la sección \ref{sec:prac02:formato}: tres líneas con nueve valores separados por espacios.
+
+\begin{lstlisting}[numbers=none, language={}, caption={Ejecución del programa 1 y contenido de \texttt{matriz.txt}.}, label={lst:prac02:salida-programa1}]
+$ ./programa1
+[PROGRAMA 1] El archivo 'matriz.txt' se ha generado exitosamente.
+$ cat matriz.txt
+1 2 3 4 5 6 7 8 9
+1 3 5 7 9 11 13 15 17
+2 4 6 8 10 12 14 16 18
+\end{lstlisting}
+
+\subsection{Ejecución del programa 2}
+\label{sec:prac02:evid-programa2}
+
+El programa 2 es el proceso padre: crea los nueve procesos hijos, espera a que terminen y muestra el contenido de \texttt{resultados.txt} (código \ref{lst:prac02:salida-programa2}). Los nueve productos coinciden con los valores esperados de la tabla \ref{tab:prac02:productos}. En esta ejecución las líneas aparecieron en el orden de las columnas, pero, como se explicó en la sección \ref{sec:prac02:programa2}, ese orden no está garantizado, porque depende de cuál hijo termine primero; por eso cada línea indica el número de columna.
+
+\begin{lstlisting}[numbers=none, language={}, caption={Ejecución del programa 2 (proceso padre y nueve procesos hijos).}, label={lst:prac02:salida-programa2}]
+$ ./programa2
+[PADRE] Creando 9 procesos hijos para procesar las columnas en paralelo...
+
+[PADRE] Todos los hijos han terminado. Resultados contenidos en 'resultados.txt':
+--------------------------------------------------
+Columna 1: 2
+Columna 2: 24
+Columna 3: 90
+Columna 4: 224
+Columna 5: 450
+Columna 6: 792
+Columna 7: 1274
+Columna 8: 1920
+Columna 9: 2754
+--------------------------------------------------
+\end{lstlisting}
+
+\subsection{Captura de la sesión en la terminal}
+\label{sec:prac02:evid-captura}
+
+La figura \ref{fig:prac02:captura-terminal} muestra la sesión completa en la terminal: el cambio al directorio de la práctica, la compilación con \texttt{make} y la ejecución de los programas 1 y 2. En esta captura \texttt{make} sólo recompiló \texttt{programa2}, porque \texttt{programa1} ya estaba compilado y actualizado; en ambos casos la compilación termina sin errores ni advertencias. La salida del programa 2 muestra los nueve productos por columna, que coinciden con los valores esperados de la tabla \ref{tab:prac02:productos}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{practicas/prac02/figuras/captura_terminal.png}
+        {\includegraphics[width=\textwidth]{captura_terminal.png}}
+        {\fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Colocar aquí la captura de la terminal}}}
+    \caption{Compilación con \texttt{make} y ejecución de los programas 1 y 2 en la terminal.}
+    \label{fig:prac02:captura-terminal}
+\end{figure}
+
+% ---------------------------------------------------------------------
+%  Conclusiones (una por integrante)
+% ---------------------------------------------------------------------
+
+\section{Conclusiones}
+\label{sec:prac02:conclusiones}
+
+A continuación cada integrante del equipo comparte su experiencia individual con el desarrollo de esta práctica.
+\clearpage
+\subsection{Conclusión — Aarón Ugalde Téllez}
+\label{sec:prac02:concl:aaron}
+
+En esta práctica pude ver de forma concreta lo que significa dividir un problema entre varios procesos. La matriz de tres filas y nueve columnas es pequeña, pero su estructura se presta bien al paralelismo: el producto de los elementos de una columna no depende de ninguna otra columna, así que cada una puede calcularse por separado sin que los procesos tengan que coordinarse entre sí durante el cálculo. Nuestro diseño quedó en dos programas. El primero genera el archivo \texttt{matriz.txt} con los datos, y el segundo actúa como proceso padre: crea el archivo de resultados, lanza nueve procesos hijos con \texttt{fork()}, espera a que todos terminen con \texttt{wait()} y muestra al final el contenido de \texttt{resultados.txt}.
+
+Uno de los puntos que más me hizo pensar fue cómo informar a cada hijo qué columna le corresponde sin usar \emph{sockets}, que la práctica prohíbe. La solución resultó más sencilla de lo que esperaba: al ejecutar \texttt{fork()}, el hijo hereda una copia de la memoria del padre, incluida la variable del ciclo que indica la columna en turno, de modo que basta con pasarla como argumento a la función que ejecuta el hijo. Esto me ayudó a entender que un proceso hijo no comparte memoria con su padre, sino que recibe una copia independiente. Por eso, lo que un hijo modifique en sus variables no le llega al padre, y por eso los resultados tienen que viajar por un archivo. Ahí aparece, además, la razón de usar el modo de apertura \texttt{"a"} (\emph{append}) en el archivo de resultados: como los nueve hijos escriben casi al mismo tiempo, cada uno debe agregar su línea al final sin borrar lo que ya escribieron los demás. También entendí por qué el padre crea y vacía \texttt{resultados.txt} antes de generar a los hijos: si lo hicieran ellos, uno podría borrar el trabajo de otro.
+
+Otra consecuencia del paralelismo es que el orden en que terminan los hijos lo decide el sistema operativo y no el programa, así que las líneas de \texttt{resultados.txt} no tienen garantizado el orden de las columnas. Por eso cada línea incluye el número de columna, de modo que el resultado sigue siendo interpretable aunque llegue desordenado. Además, como no hay datos capturados por el usuario, la validación se concentró en revisar el valor de retorno de cada operación que puede fallar: la apertura de archivos, la lectura con \texttt{fscanf()}, la escritura con \texttt{fprintf()} y la propia llamada a \texttt{fork()}. Para el padre, verificar el estado de salida de cada hijo fue importante, porque un hijo puede fallar sin que el padre lo note si no revisa lo que devuelve \texttt{wait()}. Elegí \texttt{long long} para los productos por prudencia, ya que multiplicar valores enteros puede desbordar un \texttt{int} con mucha facilidad en cuanto la matriz crezca.
+
+Finalmente, el uso de un \texttt{Makefile} con las banderas \texttt{-Wall} y \texttt{-Wextra} me obligó a escribir código sin advertencias, lo cual es un buen hábito para las prácticas que siguen. Esta práctica me deja una base clara para los temas posteriores de la materia: sé cómo crear procesos, cómo esperar su terminación y cómo repartirles trabajo, y también sé que su costo (crear un proceso completo por cada columna) sólo se justifica cuando el trabajo de cada uno es considerable, algo que será útil al comparar procesos con hilos más adelante.
+
+% ---------------------------------------------------------------------
+%  Conclusión — Said Carbot Cruz Trejo
+% ---------------------------------------------------------------------
+\clearpage
+\subsection{Conclusión — Said Carbot Cruz Trejo}
+\label{sec:prac02:concl:said}
+
+El desarrollo de la Práctica 2 representó un reto enorme y me enseñó bastante sobre cómo los sistemas operativos controlaban el hardware real. Desde mi rol enfocado en la investigación teórica, analicé a fondo los conceptos detrás del manejo de memoria y la concurrencia. Al observar cómo el equipo usó la función \texttt{fork()} para dividir las tareas, vi la teoría del paralelismo convertida en algo vivo y funcional. Estudié cómo el programa partió el trabajo de la matriz original de tres filas por nueve columnas y le asignó una columna específica a un proceso hijo distinto. Analizar esto me hizo cambiar mi forma de pensar sobre la ejecución de código. Mandar la instrucción para crear procesos resultó fácil, pero controlarlos requirió un diseño lógico súper riguroso para que los programas no chocaran al buscar la información ni se quedaran colgados en la memoria RAM.
+
+El mayor obstáculo llegó cuando el equipo cumplió la regla de no usar herramientas modernas de comunicación, como bases de datos o sockets. Al depender solamente de leer y escribir en archivos de texto plano, noté lo vital que era dominar las entradas y salidas básicas del lenguaje C. Revisé paso a paso cómo cada proceso hijo abría el documento inicial, leía línea por línea, saltaba los números que no le servían y extraía solo sus tres valores asignados. Después, vi cómo el código multiplicó eso y guardó el resultado utilizando el modo de agregar texto (``a''). Esta simple letra permitió que los nueve programas escribieran en el mismo lugar sin pisarse los talones ni borrar el trabajo de sus compañeros. Además, la función \texttt{wait()} me recordó mucho a la sincronización estricta que requieren los sistemas distribuidos. El proceso padre actuó como un coordinador absoluto que pausó su propio reloj y esperó a que todas las tareas terminaran antes de juntar las piezas y mostrar el final en la pantalla.
+
+Más allá del código puro, esta práctica conectó directo con los problemas reales que enfrento en la computación actual. Segmentar y multiplicar partes de una matriz pareció un simple ejercicio de salón, pero en realidad, descubrí que esta es la base matemática de lo que hago todo el tiempo. Por ejemplo, en la simulación de circuitos cuánticos usando Qiskit o PennyLane, aplicar compuertas cuánticas a un registro de cúbits Transmon se reduce, en el fondo, a multiplicaciones de matrices gigantescas contra vectores de estado. Cuando trabajé en la optimización de algoritmos híbridos como el VQE (\textit{Variational Quantum Eigensolver}) para simulaciones de química o al estructurar generadores de números aleatorios para el modelado de mercados financieros, noté que la única forma de procesar esos espacios de estado masivos era paralelizando el trabajo clásico exactamente de esta misma forma. Entender cómo el sistema operativo reparte el procesador entre tareas simultáneas me ayudó a dimensionar el verdadero cuello de botella de los simuladores. En Inteligencia Artificial, solemos usar \textit{frameworks} que esconden toda esta talacha matemática, pero analizar este sistema en C me permitió ver el costo computacional real.
+
+Finalmente, evalué cómo el equipo usó un archivo \texttt{Makefile} para darle instrucciones súper estrictas al compilador y cómo limpiaron absolutamente todas las advertencias de la terminal. Esto le dio una calidad técnica excelente a nuestra entrega y demostró la importancia de las buenas prácticas. En conclusión, esta práctica mejoró muchísimo mi visión sobre la programación pura y transformó conceptos teóricos abstractos en cosas que pude medir. Aprendí cómo la teoría de estructuras de datos y el manejo lineal de la memoria respaldan cada línea de código cuando buscamos velocidad y seguridad. Todo este esfuerzo construyó una base estructural valiosísima que sin duda me servirá para diseñar mejores flujos de trabajo paralelos, tanto en arquitecturas de IA clásicas como en mis futuros proyectos de computación cuántica distribuida.
+
+% ---------------------------------------------------------------------
+%  Conclusión — Magaly López Castro
+% ---------------------------------------------------------------------
+\clearpage
+\subsection{Conclusión — Magaly López Castro}
+\label{sec:prac02:concl:magaly}
+
+El desarrollo de esta práctica representó una oportunidad invaluable para aterrizar los conceptos teóricos de la gestión de procesos mediante su implementación directa en el lenguaje C. Ejecutar y depurar este código en un entorno de terminal Linux me permitió visualizar claramente la estructura jerárquica que forma el sistema operativo al gestionar la ejecución concurrente. Al diseñar un programa donde un proceso padre actúa como orquestador delegando tareas específicas a múltiples procesos hijos, la teoría sobre multiplexación y distribución de carga de trabajo se volvió completamente tangible.
+
+El núcleo del ejercicio radicó en la correcta utilización de la llamada al sistema \texttt{fork()}. A través de ella, fue posible generar copias del proceso original, donde el gran reto algorítmico consistió en utilizar el control de flujo para que el padre informara a cada hijo exactamente qué columna de la matriz debía procesar. Esto demostró que la concurrencia no solo trata de crear múltiples procesos, sino de dotarlos de contexto e identidad lógica para evitar el procesamiento redundante.
+
+Por otro lado, la interacción con los tipos de datos y los archivos añadió una capa vital de complejidad. Al tener múltiples procesos hijos abriendo un mismo archivo de manera concurrente para extraer información, fue necesario garantizar que cada uno leyera únicamente los datos correspondientes a su columna asignada antes de realizar la multiplicación de los elementos. Posteriormente, la escritura de estos resultados parciales en un nuevo archivo de salida puso a prueba el manejo de los descriptores de archivo en C, evidenciando los riesgos de las condiciones de carrera si no se gestionan adecuadamente las operaciones de entrada/salida.
+
+Finalmente, comprendí el rol crítico de la llamada \texttt{wait()} en la sincronización. Si el proceso padre no hubiera bloqueado su ejecución a la espera de la terminación de todos sus hijos, se habría intentado mostrar un resultado final basado en un archivo de texto incompleto, generando además procesos huérfanos en el sistema. Dominar estas primitivas básicas de POSIX no solo resuelve el problema matricial planteado, sino que sienta unas bases metodológicas muy sólidas para comprender modelos de cómputo mucho más robustos, facilitando la transición futura hacia el estudio de arquitecturas de paralelismo real y supercómputo, como el uso de \textit{frameworks} al estilo de OpenMP o MPI.
+
+% ---------------------------------------------------------------------
+%  Conclusión — Lino Ehecatl Romero Rosales
+% ---------------------------------------------------------------------
+\clearpage
+\subsection{Conclusión — Lino Ehecatl Romero Rosales}
+\label{sec:prac02:concl:lino}
+
+El desarrollo de esta práctica resultó bastante interesante porque nos permitió aplicar una forma distinta de pensar al momento de diseñar el sistema. En la carrera ya estamos muy acostumbrados a hacer código y resolver problemas lógicos, pero pasar de un compilar un programa a utilizar procesos paralelos me hizo comprender un enfoque mucho más profundo, más cercano a cómo administra los recursos el sistema operativo. Usar la función \texttt{fork} para ramificar el programa es algo que requiere atención, no porque la programación sea complicada, sino porque hay que tener cuidado con la forma en que se maneja la memoria y el ciclo de vida de cada proceso, para asegurarnos de que el sistema termine de forma limpia y sin dejar procesos zombies.
+
+La dinámica que aplicamos para resolver el problema me pareció un muy buen ejemplo de cómo dividir la carga de trabajo. Partimos de una matriz de 3 filas y 9 columnas, donde el proceso del padre se encargó de crear un hijo por cada una de las columnas. Cada proceso hijo tenía la tarea independientemente de leer los datos de su propia columna y multiplicar esos valores. Aunque hacer esto de forma lineal sería instantáneo, implementar esta arquitectura donde varios procesos trabajan al mismo tiempo sobre la misma información es la base para escalar sistemas. Especialmente en el área de inteligencia artificial y análisis de datos, saber cómo repartir el trabajo para procesar información de manera concurrente es algo fundamental.
+
+Un requerimiento clave de esta entrega fue la regla de gestionar la información sin bases de datos y sin usar sockets para la comunicación. Tuvimos que lograr que los procesos trabajaran coordinados utilizando únicamente el disco duro a través de archivos. Usamos las funciones clásicas de C como \texttt{fopen}, \texttt{fscanf} y \texttt{fprintf} para que cada hijo abriera el archivo original, extrajera su columna y escribiera el resultado final en el archivo de salida. Ya tenemos bastante experiencia manejando archivos, pero coordinar de forma concurrente las entradas y salidas de 9 procesos sin que los datos se corrompan o se sobrescriban te obliga a tener un control mucho más estricto del estado del sistema.
+
+Toda esta arquitectura no funcionaría correctamente sin una buena sincronización. Para eso implementamos la función \texttt{wait}, que permite al proceso padre quedarse en espera hasta que todos sus hijos terminen de multiplicar y guardar sus respectivos resultados. Si el padre no coordina esto y se adelanta, el programa terminaría su ejecución dejando el archivo de salida a medias. Esto demuestra que la eficiencia en paralelo no se trata nada más de lanzar tareas al mismo tiempo, sino de saber orquestarlas.
+
+Para cerrar, considero que esta práctica fue una excelente manera de fortalecer lo que ya sabemos hacer al programar, pero llevándolo a un nivel de optimización superior. Ver en la práctica cómo los procesos conviven, comparten archivos y se sincronizan mediante señales del sistema, me da mucha más confianza para seguir construyendo arquitecturas de software robustas. Al final, el objetivo ya no es solo que el algoritmo funcione y dé el resultado correcto, sino que lo haga aprovechando el hardware al máximo.
+
+% ---------------------------------------------------------------------
+%  Anexos: código generado (Aarón Ugalde Téllez)
+%  Los listados leen directamente los archivos de practicas/prac02/,
+%  así el documento siempre muestra el código real, sin duplicarlo.
+% ---------------------------------------------------------------------
+
+\section{Anexos}
+\label{sec:prac02:anexos}
+
+En este apartado se incluye el código fuente completo generado para la práctica: los dos programas en lenguaje C y el \texttt{Makefile} con el que se compilan.
+
+\subsection{Código de \texttt{programa1.c}}
+\label{sec:prac02:anexo:programa1}
+
+\lstinputlisting[style=C, caption={Programa 1: creación del archivo \texttt{matriz.txt} (\texttt{programa1.c}).}, label={lst:prac02:programa1}]{practicas/prac02/programa1.c}
+
+\subsection{Código de \texttt{programa2.c}}
+\label{sec:prac02:anexo:programa2}
+
+\lstinputlisting[style=C, caption={Programa 2: proceso padre y procesos hijos (\texttt{programa2.c}).}, label={lst:prac02:programa2}]{practicas/prac02/programa2.c}
+
+\subsection{Código del \texttt{Makefile}}
+\label{sec:prac02:anexo:makefile}
+
+\lstinputlisting[language=make, caption={\texttt{Makefile} para compilar los dos programas.}, label={lst:prac02:makefile}]{practicas/prac02/Makefile}
