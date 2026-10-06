@@ -5,12 +5,9 @@
  * Capítulo 3: Programación con Procesos
  * 
  * Autor: Aarón Ugalde Téllez
- * Función asignada: f(x) = -5/6 * x^2 + (1/3) * x - 2/7,  x en [-pi, pi]
+ * Función asignada: f(x) = -5/6 * x^2 + pi/3 * x + 2/7
  * Configuración: 100 Procesos Hijos, Memoria Compartida, Semáforos System V.
- * Puntos de evaluación: 64 nodos x = -3.1416 + 0.1*k, k = 0..63 (los mismos
- *                       nodos de la hoja de cálculo del Capítulo 2).
- *
- * Compilación:  gcc -Wall -O2 fourier_aaron.c -o fourier_aaron -lm
+ * Puntos de evaluación: 64 valores específicos de x especificados por el usuario.
  * =====================================================================================
  */
 
@@ -38,15 +35,12 @@ static const double x_values[NUM_PUNTOS] = {
      2.4584,  2.5584,  2.6584,  2.7584,  2.8584,  2.9584,  3.0584,  3.1584
 };
 
-// Estructura requerida para semctl. glibc (GNU/Linux) no la declara y debe
-// definirla el programa; macOS ya la trae en <sys/sem.h>, por eso la guarda.
-#if defined(__linux__)
+// Estructura requerida para semctl
 union semun {
     int val;
     struct semid_ds *buf;
     unsigned short *array;
 };
-#endif
 
 // Operación P (Wait / Bloquear semáforo)
 void sem_wait_op(int sem_id) {
@@ -60,7 +54,7 @@ void sem_post_op(int sem_id) {
     semop(sem_id, &sb, 1);
 }
 
-int main(void) {
+int main() {
     printf("====================================================================\n");
     printf(" CÓMPUTO PARALELO - CAPÍTULO 3: PROGRAMACIÓN CON PROCESOS\n");
     printf(" Integrante: Aarón Ugalde Téllez\n");
@@ -82,8 +76,8 @@ int main(void) {
         exit(EXIT_FAILURE);
     }
 
-    // 2. Inicializar la memoria compartida con el término constante (a0/2)
-    // a0/2 = -5/18 * pi^2 - 2/7
+    // 2. Inicializar la memoria compartida con el valor a0
+    // a0 = -5/18 * pi^2 - 2/7
     double a0 = (-5.0 / 18.0) * (M_PI * M_PI) - (2.0 / 7.0);
     for (int i = 0; i < NUM_PUNTOS; i++) {
         f_x[i] = a0;
@@ -104,7 +98,6 @@ int main(void) {
     }
 
     printf("[PADRE | PID: %d] Creando %d procesos hijos...\n\n", getpid(), NUM_PROCESOS);
-    fflush(stdout); // vacía el búfer: si no, cada hijo heredaría (y repetiría) este texto
 
     // 4. Crear los 100 procesos hijos
     for (int p = 1; p <= NUM_PROCESOS; p++) {

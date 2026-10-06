@@ -17,14 +17,15 @@
 %  anexos; 3.5 referencias las imprime el documento contenedor). En
 %  3.2, 3.3 y 3.4 va una subsección por integrante.
 %
-%  ESTADO: sólo está escrita la parte de Aarón Ugalde Téllez. Lo que
-%  falta de los demás integrantes está marcado con "PENDIENTE".
+%  ESTADO: integradas las partes de Aarón Ugalde Téllez, Lino Ehecatl
+%  Romero Rosales, Magaly Lopez Castro y Said Carbot Cruz Trejo. Lo que
+%  aún falta está marcado con "PENDIENTE".
 % =====================================================================
 
 \chapter{\TituloCapTres}
 \label{cap:03}
 
-En este capítulo se lleva a un programa en lenguaje C el cálculo de los términos de la Serie de Fourier que se resolvió analíticamente en el capítulo 1 y se graficó en hojas de cálculo en el capítulo 2. A diferencia de la hoja de cálculo, que evalúa todo de forma secuencial, el programa reparte el trabajo entre cien procesos hijos creados con \texttt{fork()}: cada hijo calcula un armónico, los resultados se acumulan en una región de memoria compartida y un semáforo garantiza que esa acumulación se haga sin condiciones de carrera.
+En este capítulo se lleva a programas en lenguaje C el cálculo de la Serie de Fourier de la función asignada a cada integrante, que se resolvió analíticamente en el capítulo 1 y se graficó en hojas de cálculo en el capítulo 2. A diferencia de la hoja de cálculo, que evalúa todo de forma secuencial, cada programa reparte el trabajo entre cien procesos hijos creados con \texttt{fork()}: cada hijo calcula un armónico, los resultados se reúnen en una región de memoria compartida y un semáforo garantiza que ese acceso se haga sin condiciones de carrera.
 
 % =====================================================================
 % 3.1 Marco teórico
@@ -32,10 +33,43 @@ En este capítulo se lleva a un programa en lenguaje C el cálculo de los térmi
 \section{Marco teórico}
 \label{sec:cap03:marco}
 
-% PENDIENTE (otros integrantes): \subsection{Procesos hijos con la
-%   llamada al sistema fork()}
-% PENDIENTE (otros integrantes): \subsection{Memoria compartida en
-%   lenguaje C}
+Dentro del cómputo paralelo, la concurrencia permite que varias tareas matemáticas se ejecuten al mismo tiempo, lo que puede reducir el tiempo de procesamiento. Para repartir el cálculo de los 100 armónicos de la serie entre procesos independientes y garantizar la integridad de la información se recurre a llamadas al sistema y a mecanismos de comunicación entre procesos (IPC) y de sincronización \cite{silberschatz:os-concepts:2018,stevens:advanced-unix-programming:2013}. Las subsecciones siguientes describen los tres elementos que emplean los programas de este capítulo: la creación de procesos con \texttt{fork()}, la memoria compartida y los semáforos.
+
+% ---------------------------------------------------------------------
+\subsection{Procesos hijos con la llamada al sistema \texttt{fork()} en lenguaje C}
+\label{sec:cap03:fork}
+
+En los sistemas operativos tipo UNIX y GNU/Linux, la concurrencia a nivel de sistema se maneja sobre todo mediante la creación de procesos. La interfaz POSIX (\textit{Portable Operating System Interface}) define la llamada al sistema \texttt{fork()}, que es el mecanismo fundamental para crear nuevos procesos en lenguaje C \cite{silberschatz:os-concepts:2018}.
+
+Cuando un programa invoca \texttt{fork()}, el sistema operativo suspende momentáneamente la ejecución del proceso invocador (el ``proceso padre'') y crea un clon exacto de éste, el ``proceso hijo''. El nuevo proceso recibe una copia independiente del espacio de direcciones de memoria del padre, que incluye el segmento de código, los datos estáticos, el montículo (\textit{heap}) y la pila (\textit{stack}) \cite{kerrisk:linux-programming-interface:2010}. Aunque ambos procesos comparten el mismo código fuente, sus espacios de memoria están aislados: una variable que el hijo modifica no altera el valor de esa misma variable en la memoria del padre.
+
+La característica más importante de \texttt{fork()} es que, tras una ejecución exitosa, padre e hijo reanudan su ejecución de forma concurrente, justo en la instrucción siguiente a la llamada. Para que el programa distinga qué proceso ejecuta cada bloque de código, \texttt{fork()} devuelve valores distintos (de tipo \texttt{pid\_t}) a cada uno \cite{stevens:advanced-unix-programming:2013}:
+
+\begin{itemize}
+    \item \textbf{Al proceso hijo:} la función devuelve exactamente el valor \texttt{0}.
+    \item \textbf{Al proceso padre:} la función devuelve el identificador de proceso (PID), un entero positivo que corresponde al nuevo hijo.
+    \item \textbf{En caso de error:} si el sistema no tiene recursos suficientes (por ejemplo, memoria RAM disponible) para crear el proceso, la función devuelve \texttt{-1} al padre y la bifurcación se cancela.
+\end{itemize}
+
+Esta dualidad en el valor de retorno permite usar estructuras condicionales (\texttt{if-else}) para asignar rutinas específicas a cada flujo de ejecución. En las implementaciones modernas del núcleo de Linux, \texttt{fork()} está muy optimizada mediante una técnica de gestión de memoria llamada \textit{Copy-on-Write} (copia en escritura), que retrasa la copia real de las páginas de memoria hasta que alguno de los dos procesos intenta modificarlas; así se reduce considerablemente la sobrecarga y el tiempo de creación del proceso \cite{silberschatz:os-concepts:2018}.
+
+% ---------------------------------------------------------------------
+\subsection{Memoria compartida en lenguaje C}
+\label{sec:cap03:memcomp}
+
+La memoria compartida es una de las técnicas de comunicación entre procesos más rápidas en los sistemas basados en UNIX y GNU/Linux. A diferencia de los \textit{pipes} o los \textit{sockets}, en los que los datos se copian una y otra vez entre el espacio de usuario y el del núcleo, la memoria compartida proyecta directamente una región de memoria física en el espacio de direcciones de varios procesos, que pueden acceder a ella al mismo tiempo \cite{kerrisk:linux-programming-interface:2010}.
+
+Con el estándar System V en GNU/Linux, este segmento se administra principalmente con cuatro funciones en C:
+
+\begin{enumerate}
+    \item \texttt{shmget()}: solicita al sistema un bloque nuevo de memoria o permite conectarse a uno existente mediante una clave, y devuelve un identificador del segmento.
+    \item \texttt{shmat()}: acopla el segmento al proceso que la llama y devuelve un puntero a la dirección desde la cual se puede leer o escribir.
+    \item \texttt{shmdt()}: hace lo contrario de la anterior; cuando el proceso termina de usar la memoria, la desacopla de su espacio de direcciones.
+    \item \texttt{shmctl()}: funciona como panel de control del segmento, pues permite consultar su estado, cambiar permisos o destruirlo (con \texttt{IPC\_RMID}) para que deje de ocupar memoria.
+\end{enumerate}
+
+Si cien procesos escriben resultados al mismo tiempo en la misma región de memoria, el programa puede fallar o producir datos corruptos, el problema conocido como \textit{race condition}. Por eso es necesario serializar el acceso con herramientas como los semáforos, que se describen en la siguiente subsección (sección \ref{sec:cap03:semaforos}).
+
 
 % ---------------------------------------------------------------------
 \subsection{Semáforos y sincronización en lenguaje C}
@@ -256,12 +290,19 @@ $ ./fourier_aaron
 La figura \ref{fig:cap03:aaron:terminal} es la captura de esa sesión en la terminal. Al comparar la salida de ejecuciones sucesivas, el archivo CSV resultó idéntico byte a byte: aunque el orden en que los hijos entran a la sección crítica cambia de una ejecución a otra, la diferencia que eso introduce al sumar números de punto flotante es de un orden muy inferior a los seis decimales con que se escribe el archivo.
 
 \begin{figure}[H]
+
     \centering
-    \IfFileExists{capitulos/cap03/figuras/cap03-aaron-terminal.png}
-        {\includegraphics[width=\textwidth]{cap03-aaron-terminal.png}}
+
+    \IfFileExists{capitulos/cap03/figuras/image.png}
+        {\includegraphics[
+            width=\textwidth,
+            height=0.75\textheight,
+            keepaspectratio
+        ]{capitulos/cap03/figuras/image.png}}
         {\fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Colocar aquí la captura de la terminal}}}
     \caption{Compilación y ejecución del programa con 100 procesos hijos en la terminal.}
     \label{fig:cap03:aaron:terminal}
+
 \end{figure}
 
 \subsubsection{Resultados obtenidos y gráfica}
@@ -327,6 +368,237 @@ En el interior del intervalo, $F_{100}$ se acerca a $f$ mucho más que $F_{10}$:
 La última fila se explica por el último nodo, que queda fuera de $[-\pi, \pi]$: ahí $f(x)$ sigue el polinomio ($-7.5458$), mientras que $F_{100}$ ya describe el periodo siguiente ($-9.3902$), de modo que ese solo nodo aporta un error de $1.84$ y domina el promedio. Comparar la serie con $f$ en ese punto no es significativo, y por eso la comparación razonable es la de las filas anteriores. Cerca del salto el error también disminuye con más armónicos, pero mucho más despacio: en $x = -3.1416$ pasa de $1.36$ a $1.08$, porque la serie converge allí al punto medio del salto y no a $f$. Este es el mismo comportamiento que se observó con diez armónicos en el capítulo 2, sólo que ahora la región afectada es diez veces más estrecha.
 
 Por último, se comprobó que la acumulación paralela es correcta. Los 64 valores del programa en C se contrastaron con una evaluación serial e independiente de la misma suma de 100 armónicos (script del anexo \ref{sec:cap03:anexo:python}): el error cuadrático medio entre ambos es de $7.4\times10^{-14}$ y la mayor diferencia absoluta es de $5.0\times10^{-7}$, es decir, media unidad del último decimal del archivo CSV. Esto confirma que el semáforo evitó las condiciones de carrera: si se hubiera perdido alguna de las cien contribuciones, la mayor diferencia sería como mínimo del orden de $10^{-3}$, pues incluso el armónico más pequeño, $n = 100$, aporta términos de hasta $b_{100} \approx 6.7\times10^{-3}$.
+
+% ---------------------------------------------------------------------
+\subsection{Función propuesta por Lino Ehecatl Romero Rosales}
+\label{sec:cap03:lino}
+
+\subsubsection{Serie de Fourier por evaluar}
+\label{sec:cap03:lino:serie}
+
+La función asignada es
+
+\begin{equation}
+    f(x) = -\frac{1}{4}x^{4} + 3,
+    \qquad x \in [-\pi, \pi].
+    \label{eq:cap03:lino:funcion}
+\end{equation}
+
+Como $f$ es una función par, $b_n = 0$ para todo $n$ y los coeficientes que calcula el programa son
+
+\begin{align}
+    \frac{a_0}{2} &= 3 - \frac{\pi^{4}}{20} \approx -1.8705, \label{eq:cap03:lino:a0}\\[4pt]
+    a_n &= \frac{2\,(-1)^{n}\left(6 - n^{2}\pi^{2}\right)}{n^{4}}. \label{eq:cap03:lino:an}
+\end{align}
+
+El programa obtiene estos coeficientes para los primeros cien armónicos y los escribe en un archivo CSV; la reconstrucción de la función se hace después en la hoja de cálculo.
+
+\subsubsection{Diseño e implementación técnica}
+\label{sec:cap03:lino:diseno}
+
+Para este programa se usó \texttt{fork()} para crear los 100 procesos hijos. El hijo $p$ calcula el armónico $n = p$ y guarda $n$, $a_n$ y $b_n$ en su casilla de un arreglo de estructuras \texttt{TerminoFourier} alojado en un segmento de memoria compartida; un semáforo binario protege la escritura para que los procesos no choquen al guardar sus datos. El padre espera a que terminen los cien hijos, calcula $a_0/2$, escribe el archivo \texttt{fourier\_f3\_lino.csv} y libera la memoria compartida y el semáforo. El código completo se encuentra en los anexos (sección \ref{sec:cap03:anexo:lino}).
+
+\subsubsection{Compilación y ejecución en GNU/Linux}
+\label{sec:cap03:lino:ejecucion}
+
+Para compilar el código en la terminal de GNU/Linux se usó \texttt{gcc} con las banderas \texttt{-Wall} y \texttt{-Wextra}, que activan advertencias adicionales, y \texttt{-O2} para optimizar. Como se observa en la figura \ref{fig:cap03:lino:compilacion}, el código compiló sin errores ni advertencias.
+
+\Figura{imagen 1.jpeg}{0.85}{Evidencia de compilación limpia, sin errores, usando \texttt{gcc}, y visualización del archivo binario.}{cap03:lino:compilacion}
+
+Una vez obtenido el ejecutable se corrió el programa: se crearon los 100 procesos hijos de forma paralela y, en una fracción de segundo, llenaron el archivo \texttt{fourier\_f3\_lino.csv} con los coeficientes (figura \ref{fig:cap03:lino:ejecucion}).
+
+\Figura{imagen 2.jpeg}{0.85}{Evidencia de la ejecución del programa y revisión del archivo CSV generado.}{cap03:lino:ejecucion}
+
+\subsubsection{Comparación de resultados y gráficas}
+\label{sec:cap03:lino:resultados}
+
+Para comprobar que el código en C funciona correctamente, el archivo CSV se llevó a Excel y sus resultados se colocaron junto a los cálculos analíticos que se hicieron a mano en la fase 1 (tabla \ref{tab:cap03:lino:comparacion}).
+
+\begin{table}[H]
+    \centering
+    \caption{Comparativa de coeficientes: cálculo teórico frente a los resultados del programa en C.}
+    \label{tab:cap03:lino:comparacion}
+    \begin{tabular}{lrrrr}
+        \toprule
+        \textbf{Armónico} & \textbf{Fase 1} & \textbf{Fase 3} & \textbf{Diferencia} & \textbf{Error} \\
+        $(n)$ & (analítico) & (procesos en C) & absoluta & (\%) \\
+        \midrule
+        $0$ $(a_0/2)$ & $-1.870455$ & $-1.870455$ & $0.000000$ & $0.00$ \\
+        $1$ & $7.739209$ & $7.739209$ & $0.000000$ & $0.00$ \\
+        $2$ & $-4.184802$ & $-4.184802$ & $0.000000$ & $0.00$ \\
+        $3$ & $2.045097$ & $2.045097$ & $0.000000$ & $0.00$ \\
+        $4$ & $-1.186826$ & $-1.186826$ & $0.000000$ & $0.00$ \\
+        $5$ & $0.770368$ & $0.770368$ & $0.000000$ & $0.00$ \\
+        $10$ & $-0.196192$ & $-0.196192$ & $0.000000$ & $0.00$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+En la tabla se observa que ambos cálculos coinciden hasta los seis decimales con que se escribe el archivo CSV. Esto indica que la fórmula programada y la sincronización de los 100 procesos creados con \texttt{fork()} reproducen el modelo teórico.
+
+\Figura{excel.jpeg}{0.85}{Reconstrucción analítica de la función $f(x) = -\frac{1}{4}x^4 + 3$ generada previamente en Excel.}{cap03:lino:excel}
+
+\Figura{hilos.jpeg}{0.85}{Reconstrucción de la función $f(x) = -\frac{1}{4}x^4 + 3$ graficada con los datos obtenidos mediante los 100 procesos en C.}{cap03:lino:grafica-c}
+
+% ---------------------------------------------------------------------
+\subsection{Función propuesta por Magaly Lopez Castro}
+\label{sec:cap03:maga}
+
+Para resolver la serie de Fourier de la función propuesta $f(x) = 5x^{3} - 3x^{2} + 1$ se implementó un programa en lenguaje C ejecutado de forma nativa en una distribución Ubuntu Linux. El objetivo fue distribuir la carga computacional calculando cada iteración armónica de forma concurrente.
+
+\subsubsection{Fragmentos de código explicados}
+\label{sec:cap03:maga:codigo}
+
+La arquitectura del programa se basa en tres componentes críticos de sincronización. Primero, el proceso padre solicita el segmento de memoria compartida y crea el semáforo (código \ref{lst:cap03:maga:init}).
+
+\begin{lstlisting}[style=C, caption={Solicitud de memoria compartida e inicialización del semáforo en 1 (desbloqueado).}, label={lst:cap03:maga:init}]
+// Solicitud de Memoria Compartida
+int shmid = shmget(IPC_PRIVATE, sizeof(MemoriaCompartida), IPC_CREAT | 0666);
+MemoriaCompartida *shm = (MemoriaCompartida *)shmat(shmid, NULL, 0);
+
+// Inicialización del Semáforo en 1 (Desbloqueado)
+int semid = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+semctl(semid, 0, SETVAL, 1);
+\end{lstlisting}
+
+Posteriormente, un ciclo despliega los 100 procesos hijos mediante \texttt{fork()}. Dentro del contexto del hijo se evalúan los coeficientes de Fourier $a_n$ y $b_n$ específicos para la iteración actual $n$ (código \ref{lst:cap03:maga:hijo}).
+
+\begin{lstlisting}[style=C, caption={Creación de los hijos y cálculo del término de Fourier de la iteración $n$.}, label={lst:cap03:maga:hijo}]
+for (int i = 0; i < 100; i++) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        // Cálculo individual de la iteración n
+        int n = i + 1;
+        double a_n = (-12.0 * pow(-1, n)) / (n * n);
+        double b_n = 10.0 * pow(-1, n + 1) * ((M_PI * M_PI)/n - 6.0/(n*n*n));
+        double termino = a_n * cos(n * x) + b_n * sin(n * x);
+\end{lstlisting}
+
+Finalmente, antes de que el hijo guarde su resultado en la sumatoria global dentro de la memoria compartida, bloquea el semáforo; al terminar, lo libera y finaliza su ejecución (código \ref{lst:cap03:maga:critica}).
+
+\begin{lstlisting}[style=C, caption={Sección crítica: acumulación del término en la memoria compartida.}, label={lst:cap03:maga:critica}]
+        wait_semaforo(semid);   // Bloqueo de sección crítica
+        shm->terminos[i] = termino;
+        shm->suma_total += termino;
+        signal_semaforo(semid); // Liberación
+        exit(0);
+    }
+}
+\end{lstlisting}
+
+\subsubsection{Compilación y ejecución}
+\label{sec:cap03:maga:ejecucion}
+
+El código fuente se compiló con \texttt{gcc}. Debido al uso de funciones trigonométricas y potencias de \texttt{<math.h>}, se incluyó la bandera \texttt{-lm} en el enlazador. La compilación terminó sin errores ni advertencias, como se comprueba en la figura \ref{fig:cap03:maga:compilacion}.
+
+Para exportar los resultados y cumplir con la evaluación posterior, se ejecutó el binario redirigiendo la salida estándar a un archivo plano (CSV) con el operador \texttt{>}. Así fue posible trasladar la matriz de resultados a la herramienta de hoja de cálculo utilizada en las fases anteriores.
+
+\Figura{CompilacionMaga.png}{0.95}{Ejecución concurrente de los 100 procesos y exportación de datos.}{cap03:maga:compilacion}
+
+\Figura{ArchivocMaga.png}{0.5}{Resultados en la matriz del archivo generado por el programa en C.}{cap03:maga:archivo-c}
+
+\subsubsection{Integración de datos y análisis gráfico}
+\label{sec:cap03:maga:resultados}
+
+Una vez finalizada la ejecución de los 100 procesos concurrentes en la terminal de GNU/Linux, el redireccionamiento de salida (\texttt{>}) volcó la información en un archivo plano llamado \texttt{resultados.csv}. Para conservar la trazabilidad del proyecto, este archivo se importó al archivo de Excel de las fases anteriores (\texttt{Fourier\_Magaly.xlsx}). Al graficar los resultados calculados en C (figura \ref{fig:cap03:maga:fourier-c}) se observa el comportamiento de convergencia de la serie de Fourier.
+
+\Figura{fouriercpmaga.png}{0.95}{Gráfica generada en Excel a partir de los datos exportados por el programa en C, que muestra la magnitud de los términos hasta 100 iteraciones.}{cap03:maga:fourier-c}
+
+Como se explica en la gráfica, los picos iniciales corresponden a las primeras iteraciones, en las que los procesos calculan los armónicos de mayor amplitud, y conforme el número de proceso $n$ se acerca a 100 la amplitud de los términos tiende a estabilizarse cerca de cero. Esta representación ayuda a comprobar que la sumatoria finita se aproxima a su límite.
+
+\subsubsection{Comparación de resultados (fase 2 frente a fase 3)}
+\label{sec:cap03:maga:comparacion}
+
+Para validar la exactitud de la arquitectura con procesos en Linux se comparó directamente esta fase con la matriz de cálculo estático elaborada en Excel durante la fase anterior (figura \ref{fig:cap03:maga:fourier-excel}). Los primeros 10 términos calculados por los primeros 10 procesos hijos en C se contrastaron con las columnas $n = 1$ a $n = 10$ de la matriz de Excel, y se comprobó una similitud exacta hasta el sexto decimal.
+
+La diferencia principal entre ambas fases está en el paradigma de cómputo:
+
+\begin{itemize}
+    \item \textbf{Fase anterior (Excel):} el cálculo fue secuencial, manual y limitado. Escalar la matriz de 10 a 100 iteraciones exigía replicar fórmulas, una celda a la vez, con el riesgo de errores humanos.
+    \item \textbf{Fase actual (C y Linux):} el cálculo fue paralelo y dinámico. Mediante \texttt{fork()}, el sistema operativo despachó 100 cálculos de forma prácticamente simultánea y los almacenó de manera segura con memoria compartida (\texttt{shmget}) y semáforos (\texttt{semget}).
+\end{itemize}
+
+\Figura{Captura de pantalla 2026-09-18 173549.png}{0.95}{Gráfica con Excel generada en fases anteriores.}{cap03:maga:fourier-excel}
+
+% ---------------------------------------------------------------------
+\subsection{Función propuesta por Said Carbot Cruz Trejo}
+\label{sec:cap03:said}
+
+A continuación se detalla el cómputo de la serie de Fourier para la función $f(x) = x^{5}$. Se desarrolló un programa en C que crea 100 procesos hijos mediante \texttt{fork()}; cada proceso calcula los 500 puntos de su respectivo término de Fourier.
+
+\subsubsection{Fragmentos de código explicados}
+\label{sec:cap03:said:codigo}
+
+\textbf{1. Reserva de memoria compartida.} Para que los 100 procesos unifiquen sus resultados en una matriz de 101 columnas por 500 filas (una para la sumatoria global y 100 para cada término individual) se solicitó un segmento de memoria al sistema operativo (código \ref{lst:cap03:said:memoria}).
+
+\begin{lstlisting}[style=C, caption={Reserva y acoplamiento del segmento de memoria compartida.}, label={lst:cap03:said:memoria}]
+int total_espacios = 101 * 500;
+shmid = shmget(IPC_PRIVATE, total_espacios * sizeof(double), IPC_CREAT | 0666);
+memoria = (double *) shmat(shmid, NULL, 0);
+\end{lstlisting}
+
+\textbf{2. Sincronización con semáforos.} Al sumar el término individual al acumulador global de la serie existe el riesgo de una condición de carrera si dos procesos escriben al mismo tiempo; para evitarlo se usó un semáforo que aplica exclusión mutua (código \ref{lst:cap03:said:semaforo}).
+
+\begin{lstlisting}[style=C, caption={Semáforo POSIX con nombre y sección crítica de la acumulación.}, label={lst:cap03:said:semaforo}]
+semaforo = sem_open("/candado_said", O_CREAT, 0644, 1);
+// ... dentro del ciclo del hijo ...
+sem_wait(semaforo);                     // Bloquear acceso
+memoria[i] = memoria[i] + calculo;      // Sumar al total
+sem_post(semaforo);                     // Liberar acceso
+\end{lstlisting}
+
+\textbf{3. Creación de procesos hijos con \texttt{fork()}.} Se itera 100 veces para crear los procesos requeridos. Cada hijo calcula su coeficiente $b_n$ dividiendo la fórmula original en partes para simplificar la lógica en C, lo evalúa en los 500 puntos de $x$, guarda su columna independiente y la suma al total (código \ref{lst:cap03:said:fork}).
+
+\begin{lstlisting}[style=C, caption={Creación de los 100 procesos hijos y cálculo del coeficiente $b_n$.}, label={lst:cap03:said:fork}]
+for (n = 1; n <= 100; n++) {
+    pid_t pid = fork();
+    if (pid == 0) { // Codigo exclusivo del hijo
+        double parte1 = pow(PI, 4) / n;
+        double parte2 = (20.0 * pow(PI, 2)) / pow(n, 3);
+        double parte3 = 120.0 / pow(n, 5);
+        double bn = 2.0 * signo * (parte1 - parte2 + parte3);
+        // ... Calculo del seno y guardado en memoria ...
+        exit(0);
+    }
+}
+\end{lstlisting}
+
+\textbf{4. Exportación de datos.} El proceso padre espera la finalización de todos los hijos con \texttt{wait(NULL)} y después recorre la memoria compartida e imprime los resultados en formato horizontal, separados por comas, para generar un archivo \texttt{.csv} (código \ref{lst:cap03:said:csv}). El código completo se encuentra en los anexos (sección \ref{sec:cap03:anexo:said}).
+
+\begin{lstlisting}[style=C, caption={Apertura del archivo CSV de salida.}, label={lst:cap03:said:csv}]
+FILE *archivo = fopen("datos_said.csv", "w");
+// Se recorre la memoria y se imprimen las 103 columnas
+\end{lstlisting}
+
+\subsubsection{Ejecución en el entorno de la terminal}
+\label{sec:cap03:said:ejecucion}
+
+Las figuras siguientes muestran el flujo de trabajo en la terminal de línea de comandos: la creación, edición, compilación limpia y ejecución del programa concurrente.
+
+\Figura{1.png}{0.7}{Creación del archivo \texttt{fourier\_x5.c}.}{cap03:said:creacion}
+
+\Figura{2.png}{0.7}{Apertura del archivo desde la terminal para redactar el código (\texttt{fourier\_x5.c}).}{cap03:said:apertura}
+
+\Figura{xx.png}{0.7}{Apertura del archivo en TextEdit y codificación.}{cap03:said:codigo}
+
+\Figura{5.png}{0.7}{Compilación del programa con GCC (\texttt{gcc fourier\_x5.c -o fourier\_x5}). Como se observa, la compilación es limpia y no presenta errores ni advertencias.}{cap03:said:compilacion}
+
+\Figura{y.png}{0.7}{Ejecución del programa (\texttt{./fourier}). Se muestra el mensaje que indica el inicio de los 100 procesos y la correcta generación del archivo CSV.}{cap03:said:ejecucion}
+
+\Figura{z.png}{0.7}{Salida en Excel.}{cap03:said:excel}
+
+\subsubsection{Gráficas y comparación de resultados}
+\label{sec:cap03:said:resultados}
+
+La información que el programa en C volcó en el archivo \texttt{datos\_said.csv} se importó a la plantilla de Excel utilizada en las fases anteriores, lo que permitió visualizar el comportamiento de la serie con una precisión mucho mayor.
+
+\Figura{bb.png}{0.8}{Resultados de la fase 2 (capítulo 2): gráfica de la serie de Fourier calculada en Excel con un número reducido de términos ($N = 10$).}{cap03:said:fase2}
+
+\Figura{aa.png}{0.8}{Resultados de la fase 3 (capítulo 3): gráfica de la serie de Fourier procesada en lenguaje C con 100 procesos concurrentes.}{cap03:said:fase3}
+
+Al contrastar la figura \ref{fig:cap03:said:fase2} con la figura \ref{fig:cap03:said:fase3}, el salto de precisión es contundente. En la fase anterior, por las limitaciones prácticas de procesar columnas a mano en Excel, la suma se restringió a 10 términos; esto producía una curva oscilante que seguía la tendencia de $x^{5}$ pero con un rizado notable en toda su longitud.
+
+En esta tercera fase, al automatizar el cálculo con 100 procesos simultáneos, la sumatoria de Fourier (línea punteada roja) converge de manera casi perfecta con la función original (línea negra) y el rizado central desaparece. Además, con 100 términos se observa con más claridad el \textit{fenómeno de Gibbs} en los extremos de discontinuidad ($-\pi$ y $\pi$), donde la serie sobrepasa inevitablemente el valor de la función al intentar aproximar los saltos abruptos, lo que confirma la teoría analizada en el primer capítulo.
 
 % =====================================================================
 % 3.3 Análisis de la implementación con procesos
@@ -402,14 +674,137 @@ La tabla \ref{tab:cap03:aaron:hardware} presenta las características del equipo
     \end{tabular}
 \end{table}
 
+% ---------------------------------------------------------------------
+\subsection{Implementación de Lino Ehecatl Romero Rosales}
+\label{sec:cap03:lino:implementacion}
+
+Esta subsección explica la lógica del programa y las características del equipo en el que se hicieron las pruebas, donde se levantaron 101 procesos (el padre y los 100 hijos).
+
+\subsubsection{Características de la implementación y análisis}
+\label{sec:cap03:lino:tecnica}
+
+Paralelizar el cálculo con 100 procesos resultó útil porque cada término de la serie de Fourier se puede calcular por separado, sin depender del anterior; por eso se asignó un armónico distinto a cada proceso hijo. La memoria compartida permitió que todos guardaran sus resultados en el mismo arreglo y el semáforo binario organizó el acceso a él: sin semáforo existiría el riesgo de que dos procesos escribieran al mismo tiempo en la memoria compartida y corrompieran los datos finales. La tabla \ref{tab:cap03:lino:caracteristicas} resume las características de la implementación.
+
+\begin{table}[H]
+    \centering
+    \caption{Detalles técnicos del software.}
+    \label{tab:cap03:lino:caracteristicas}
+    \begin{tabular}{p{0.30\textwidth}p{0.60\textwidth}}
+        \toprule
+        \textbf{Característica} & \textbf{Detalle técnico} \\
+        \midrule
+        Lenguaje de programación & C (estándar POSIX) \\
+        Sistema operativo & GNU/Linux \\
+        Cantidad de procesos & 100 procesos hijos y 1 proceso padre (total: 101 procesos) \\
+        Memoria compartida & System V (\texttt{shmget}, \texttt{shmat}) \\
+        Sincronización & Semáforo binario System V (\texttt{semget}, \texttt{semop}) \\
+        Salida de datos & Archivo CSV delimitado por comas (\texttt{fourier\_f3\_lino.csv}) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Equipo de cómputo}
+\label{sec:cap03:lino:equipo}
+
+La tabla \ref{tab:cap03:lino:hardware} presenta las características físicas de la máquina en la que se ejecutó el programa, y las figuras \ref{fig:cap03:lino:lscpu} y \ref{fig:cap03:lino:free} muestran las salidas de los comandos con que se obtuvieron.
+
+\begin{table}[H]
+    \centering
+    \caption{Hardware donde se probaron los procesos.}
+    \label{tab:cap03:lino:hardware}
+    \begin{tabular}{p{0.30\textwidth}p{0.60\textwidth}}
+        \toprule
+        \textbf{Componente} & \textbf{Especificaciones} \\
+        \midrule
+        Procesador (CPU) & Intel Core i5-13420H (13.ª generación) \\
+        Núcleos e hilos & 8 núcleos físicos / 12 hilos lógicos \\
+        Velocidad & Hasta 4.60 GHz (máxima con \textit{boost}) \\
+        Memoria RAM & 14.0 GiB (16.0 GB físicos) \\
+        Memoria caché L1 & 320 KiB / 384 KiB \\
+        Memoria caché L2 & 7.0 MiB \\
+        Memoria caché L3 & 12.0 MiB \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\Figura{imagen 3.jpeg}{0.95}{Uso del comando \texttt{lscpu} para ver la arquitectura del procesador.}{cap03:lino:lscpu}
+
+\Figura{imagen 4.jpeg}{0.85}{Uso del comando \texttt{free -h} para verificar la RAM disponible.}{cap03:lino:free}
+
+% ---------------------------------------------------------------------
+\subsection{Implementación de Magaly Lopez Castro}
+\label{sec:cap03:maga:implementacion}
+
+\begin{table}[H]
+    \centering
+    \caption{Características de la implementación de la fase 3 y equipo de cómputo.}
+    \label{tab:cap03:maga:caracteristicas}
+    \begin{tabular}{p{0.30\textwidth}p{0.60\textwidth}}
+        \toprule
+        \textbf{Característica} & \textbf{Descripción} \\
+        \midrule
+        Lenguaje de programación & C (GNU C Compiler, GCC) \\
+        Sistema operativo & Ubuntu Linux (distribución GNU/Linux) \\
+        Técnica IPC utilizada & \texttt{fork()}, \texttt{shmget()} (memoria) y \texttt{semget()} (semáforos) \\
+        Cantidad de procesos & 101 procesos (1 padre y 100 hijos) \\
+        Equipo de cómputo & Laptop Dell \\
+        Arquitectura & x86\_64 (64 bits) \\
+        % IMPORTANTE MAGALY: revisa que estos datos coincidan con tu Dell real
+        Núcleos del procesador (CPU) & 4 núcleos físicos / 8 subprocesos lógicos \\
+        Velocidad del procesador & 2.40 GHz (velocidad base) -- 4.20 GHz (\textit{turbo}) \\
+        Memoria RAM & 8 GB DDR4, velocidad de 2666 MHz \\
+        Memoria caché del procesador & L1 (256 KB), L2 (1 MB) y L3 (6 MB), SRAM de alta velocidad \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Lenguaje y técnica utilizados}
+\label{sec:cap03:maga:tecnica}
+
+El proyecto se desarrolló en lenguaje C (compilado con GCC). Se eligió este lenguaje porque es el estándar nativo del núcleo de Linux, lo que permite un acceso de muy bajo nivel y gran eficiencia a las llamadas al sistema de POSIX, algo que no se logra con la misma rapidez y control en lenguajes de más alto nivel.
+
+La técnica central para lograr el paralelismo fue la creación concurrente de 101 procesos en total (un proceso padre y 100 procesos hijos). Esta técnica multiproceso, orquestada con \texttt{fork()}, permite que el sistema operativo distribuya la carga de las iteraciones de la serie de Fourier. A diferencia de la programación con hilos, los procesos tienen espacios de memoria aislados; por ello fue necesario recurrir a la comunicación entre procesos (IPC) de System V: memoria compartida (\texttt{shmget}) para que los 100 hijos almacenaran sus resultados en una matriz común, y semáforos (\texttt{semget}) para evitar condiciones de carrera, es decir, corrupción de datos, al escribir en la sumatoria global.
+
+% ---------------------------------------------------------------------
+\subsection{Implementación de Said Carbot Cruz Trejo}
+\label{sec:cap03:said:implementacion}
+
+\subsubsection{Características de la implementación y equipo de cómputo}
+\label{sec:cap03:said:caracteristicas}
+
+La tabla \ref{tab:cap03:said:caracteristicas} presenta las especificaciones de la implementación del programa concurrente y de la infraestructura de hardware utilizada para ejecutarlo.
+
+\begin{table}[H]
+    \centering
+    \caption{Características de la implementación de la fase 3 y equipo de cómputo.}
+    \label{tab:cap03:said:caracteristicas}
+    \begin{tabular}{p{0.30\textwidth}p{0.60\textwidth}}
+        \toprule
+        \textbf{Característica} & \textbf{Especificación técnica} \\
+        \midrule
+        Lenguaje y técnica & Lenguaje C; multiprocesamiento (\texttt{fork}), memoria compartida (\texttt{shmget}) y semáforos (\texttt{sem\_open}) \\
+        Cantidad de procesos & 101 procesos (1 padre y 100 hijos simultáneos) \\
+        Procesador y núcleos & M3 Pro con 8 núcleos físicos (4 de rendimiento y 4 de eficiencia) \\
+        Velocidad de los núcleos & Frecuencia máxima de 4.05 GHz \\
+        Memoria RAM & 18 GB \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Análisis del lenguaje y la técnica utilizada}
+\label{sec:cap03:said:tecnica}
+
+La elección del lenguaje C proporciona un acceso directo y de bajo nivel a las llamadas al sistema del núcleo, en este caso sobre la capa UNIX de macOS. La técnica de paralelización dividió el dominio computacional de forma eficaz: en lugar de que un solo hilo de ejecución calculara en secuencia los 50,000 valores requeridos (100 términos de la serie $\times$ 500 puntos por evaluar en la gráfica), la carga se distribuyó horizontalmente y a cada proceso hijo se le asignó el cálculo de un armónico distinto, hasta completar los 100 procesos concurrentes.
+
+Aunque la creación de procesos completos con \texttt{fork()} tiene un mayor costo de recursos (\textit{overhead}) que la creación de hilos, debido a la duplicación de las tablas de descriptores de archivos y de los espacios de direcciones de memoria, la arquitectura de los núcleos del procesador moderno logró ejecutar y despachar las 101 tareas en fracciones de segundo.
+
+Finalmente, el uso integrado de la memoria compartida, para unificar los datos tabulares, y de los semáforos como cerrojos de exclusión mutua demostró ser la técnica indispensable para prevenir las condiciones de carrera y garantizar la integridad matemática de las 100 columnas exportadas a la hoja de cálculo.
+
 % =====================================================================
 % 3.4 Conclusiones del capítulo
 % =====================================================================
 \section{Conclusiones del capítulo}
 \label{sec:cap03:conclusiones}
-
-% PENDIENTE (otros integrantes): una subsección \subsection{Conclusión — Nombre}
-%   por integrante, siguiendo el mismo patrón que el capítulo 2.
 
 \subsection{Conclusión — Aarón Ugalde Téllez}
 \label{sec:cap03:concl:aaron}
@@ -423,6 +818,49 @@ En el diseño de software concurrente, las llamadas al sistema convirtieron conc
 El reto más valioso fue la sincronización con semáforos. Acumular 100 contribuciones en un mismo vector sin exclusión mutua habría producido condiciones de carrera; con las operaciones atómicas $P$ y $V$ (\texttt{semop}) la acumulación resultó correcta, y lo comprobé al comparar la salida paralela con una evaluación serial, que coincidió hasta el sexto decimal. Coordinar a los 100 procesos sin bloqueos mutuos ni procesos zombis, y liberar al final los recursos IPC, exigió disciplina en el control de flujo. Incluso un detalle como la unión \texttt{semun}, que glibc deja al programador y macOS trae en su encabezado, me recordó que la portabilidad entre sistemas POSIX requiere atención.
 
 Como estudiante de Ingeniería en Inteligencia Artificial, estoy acostumbrado a abstraer los algoritmos complejos en bibliotecas de alto nivel; no obstante, esta fase me recordó la importancia de entender las capas inferiores: la planificación del núcleo, la memoria y el costo real de la concurrencia. Dominar la programación paralela a bajo nivel en C es una base indispensable para optimizar flujos de datos, diseñar motores de inferencia eficientes y construir arquitecturas distribuidas que escalen.
+\clearpage
+\subsection{Conclusión — Lino Ehecatl Romero Rosales}
+\label{sec:cap03:concl:lino}
+
+Hacer este tercer capítulo fue un cambio bastante grande en cómo veníamos trabajando en cuanto a la resolucion de nuestros capitulos. En las primeras fases resolvíamos los cálculos paso a paso, de forma normal o secuencial, pero al pasar a Linux y tener que usar procesos concurrentes como fueron los hilos. Ya no era solo resolver la serie de Fourier para una función de corrido, sino que ahora el reto era coordinar a 100 procesos para que resolvieran el problema al mismo tiempo, aprovechando toda la capacidad y los núcleos de la computadora.
+
+La herramienta principal que usamos para lograr esto fue la función fork(), que básicamente nos permite crear procesos hijos. La idea principal era muy buena, asignarle a cada uno de los 100 procesos un an diferente para que lo calculara por su cuenta. Pero aquí nos paso el primer problema. Cuando usamos fork(), el sistema hace una copia del programa, pero quita por completo la memoria. Es decir, que cada proceso hijo se quedaba con su propia memoria. Entonces, si un hijo terminaba su cálculo, el proceso padre no tenía manera de enterarse ni de ver ese resultado.
+
+Para solucionar este problema de que no se podían comunicar, tuvimos que implementar la memoria compartida. En lugar de que cada proceso guardara su resultado en su propio espacio eso nos dejaba con la problemática de que nadie mas lo podia usar, para solucionar esto le pedimos al sistema que nos prestara un bloque de memoria que fuera de acceso público para todos nuestros procesos.  De esta forma, cada vez que uno de los 100 hilos terminaba su parte de la funcion,  cada uno iba a un espacio delimitado y anotaba su coeficiente para que el proceso padre pudiera juntar toda la tabla al final.
+
+Sin embargo, tener un espacio compartido nos trajo otro problema. Como los procesos se ejecutan tan rápido y de forma paralela, existía el riesgo de que dos o más hijos intentaran escribir en la memoria exactamente en el mismo milisegundo. Esto era la problemática de condición de carrera, y si pasaba, los datos se iban a revolver, sobreescribir o a corromper por completo. Para evitar ese desastre, apliqué el uso de un semáforo binario. El semáforo funcionó como una llave de paso cuando un proceso quería guardar su resultado, tomaba el semáforo y se cerraba. Si otro proceso quería escribir en ese preciso momento, tenía que esperar a que el primero terminara y liberara el semáforo. Así pudimos garantizar que la información se guardara de forma ordenada.
+
+Al final, todo esto fue con el objetivo de tener organización en la programación para lograr nuestra etapa de validación. Nuestro programa generó un archivo CSV con todos los coeficientes ya ordenados, y cuando importamos esos números a nuestro documento de Excel, pudimos compararlos directamente con los cálculos a mano que habíamos hecho con excel en el primer capitulo. Ver que los resultados eran iguales llegando a la perfección y que el margen de error fue exactamente de 0 fue muy satisfactorio. Esta práctica me demostró que programar usando múltiples procesos no altera en absoluto las matemáticas, pero sí nos da la gran ventaja de resolver tareas pesadas de una manera mucho más eficiente. En lo personal, me deja un aprendizaje muy claro sobre cómo funciona la memoria de la computadora por dentro y cómo podemos controlarla a nuestro favor pudiendo lograr procesos muy complejos en poco tiempo si es que se sabe manejar la memoria en paralelo de nuestras computadoras.
+\clearpage
+\subsection{Conclusión — Magaly Lopez Castro}
+\label{sec:cap03:concl:maga}
+
+Programar en C puro a nivel del sistema operativo representó un cambio de paradigma radical respecto a la programación que desarrollo en mi día a día en ESCOM. En la algoritmia para competencias en plataformas como Codeforces, el objetivo central es alcanzar la optimización extrema del código en C++ ejecutado dentro de un solo hilo, enfocándose casi exclusivamente en reducir la complejidad temporal y espacial del algoritmo. Sin embargo, orquestar paralelismo real mediante el despliegue de 100 procesos independientes con la llamada fork() me obligó a dejar de pensar únicamente en la lógica secuencial y comenzar a diseñar en términos de arquitectura de sistemas: contemplando el manejo de recursos compartidos, los cambios de contexto del procesador y la gestión de memoria del kernel.
+
+Al ejecutar esta arquitectura nativamente en Ubuntu sobre mi equipo Dell, la teoría sobre la API de POSIX se materializó en desafíos reales de ingeniería. La lección más profunda de la fase fue comprender, diagnosticar y resolver el problema de la concurrencia no controlada. Visualizar que 100 procesos clonados intentarían acceder y sobreescribir simultáneamente el mismo segmento de memoria RAM dejó clara la vulnerabilidad de los sistemas ante las condiciones de carrera. Implementar un semáforo como mecanismo de bloqueo en la sección crítica no fue solo un requisito sintáctico, sino la única garantía matemática de exclusión mutua para que la sumatoria armónica de la serie de Fourier se calculara de forma determinista y segura, demostrando que en el paralelismo, la sincronización es tan crítica como el cálculo mismo.
+
+El contraste entre evaluar 100 iteraciones replicando celdas en una hoja de cálculo y delegar la carga directamente al sistema operativo demostró la verdadera escalabilidad del software. Además, esta práctica de Inter-Process Communication (IPC) conecta directamente con los fundamentos teóricos de las arquitecturas de supercómputo y alto rendimiento que estudio actualmente, sentando las bases operativas para dominar herramientas más robustas como MPI, OpenMP o los kernels de aceleración en tarjetas gráficas (CUDA).
+
+Finalmente, este enfoque de trabajo distribuido es el núcleo computacional de mi carrera en Inteligencia Artificial. Procesar señales en el dominio de las frecuencias y evaluar funciones matemáticas complejas dividiendo la carga en un enjambre de subtareas es el principio exacto que sustenta el procesamiento paralelo de matrices en redes neuronales. De igual forma, refleja la manera en que se evalúan simultáneamente múltiples individuos en algoritmos de optimización bioinspirada, como los algoritmos genéticos o la optimización por enjambre de partículas (PSO). Al final, llevar una ecuación abstracta de cálculo avanzado hacia una arquitectura concurrente y 100 por cierto funcional en Linux cerró exitosamente el ciclo entre el análisis teórico, la validación ofimática y la ingeniería de software aplicada de alto nivel.
+
+\clearpage
+\subsection{Conclusión — Said Carbot Cruz Trejo}
+\label{sec:cap03:concl:said}
+
+La culminación de esta tercera fase del proyecto ha representado un punto de inflexión muy significativo en mi formación profesional, al permitirme amalgamar conceptos teóricos de análisis matemático con la programación a nivel de sistema. Al iniciar este trabajo, la resolución de las series de Fourier para la función $f(x) = x^{5}$ se abordó desde una perspectiva puramente analítica y estática. En el capítulo 2, la limitación de las herramientas ofimáticas tradicionales se hizo evidente: calcular diez armónicos en una hoja de cálculo resultaba un proceso manual, propenso a errores y computacionalmente restrictivo, que generaba una curva con un rizado notable que apenas lograba aproximarse a la función original.
+
+El desafío principal de esta etapa no radicó en la codificación de la fórmula matemática, sino en la orquestación arquitectónica de los recursos del sistema operativo. Trabajar directamente con las llamadas al sistema en un entorno basado en UNIX (macOS) me obligó a comprender la anatomía de los procesos. Al implementar \texttt{fork()} pude observar de primera mano cómo el núcleo clona contextos de ejecución y genera un proceso padre y cien procesos hijos independientes. Esta duplicación masiva del espacio de direcciones virtuales introdujo una complejidad sustancial: el aislamiento de memoria. A diferencia de los hilos de ejecución (\textit{threads}), que comparten el mismo espacio de direccionamiento de forma nativa, los procesos creados con \texttt{fork()} son entidades aisladas. Si cada proceso calculaba su término de Fourier en su propia memoria privada, el resultado global se perdería en el instante en que el proceso terminara su ciclo de vida y el sistema operativo reclamara sus recursos.
+
+Para resolver este aislamiento lógico fue imperativo diseñar e implementar mecanismos de comunicación interprocesos (IPC). La memoria compartida, a través de las primitivas \texttt{shmget} y \texttt{shmat}, estableció un puente de datos bidireccional donde los cien procesos hijos podían depositar sus matrices de resultados horizontales (las 100 columnas independientes) y, al mismo tiempo, sumar su aporte a una columna centralizada. Sin embargo, habilitar un segmento de memoria compartida introdujo de inmediato el problema clásico de la concurrencia: las condiciones de carrera (\textit{race conditions}). Comprender que el planificador del sistema operativo (\textit{scheduler}) puede interrumpir a un proceso a la mitad de una instrucción de suma en ensamblador me hizo valorar la necesidad crítica de la sincronización. Los semáforos POSIX (\texttt{sem\_open}, \texttt{sem\_wait}, \texttt{sem\_post}) actuaron como un cerrojo de exclusión mutua, y garantizaron que el acumulador global de la serie de Fourier mantuviera su integridad matemática sin colisiones de escritura.
+
+Finalmente, ver los resultados plasmados de vuelta en las gráficas validó todo el esfuerzo de programación de bajo nivel. Al comparar visualmente el cálculo concurrente de cien armónicos contra los diez calculados en la hoja de cálculo, la mejora en la precisión es evidente: la curva polinomial se modela casi a la perfección y se hace visible de manera nítida el \textit{fenómeno de Gibbs} en las discontinuidades de los extremos, un detalle analítico que en la fase anterior quedaba difuminado.
+
+Como estudiante de Ingeniería en Inteligencia Artificial en la ESCOM, esta práctica trasciende el simple cumplimiento de una rúbrica escolar. El procesamiento masivo de datos, la paralelización de operaciones matriciales y la optimización de recursos computacionales son pilares fundamentales para el entrenamiento de redes neuronales y de arquitecturas de aprendizaje automático.
+
+% =====================================================================
+% 3.5 Referencias
+% =====================================================================
+% Las imprime el documento contenedor a partir de bib/referencias.bib.
 
 % =====================================================================
 % 3.6 Anexos
@@ -439,9 +877,20 @@ Programa de Aarón Ugalde Téllez que calcula la Serie de Fourier con 100 proces
 
 \lstinputlisting[style=C, caption={Programa \texttt{fourier\_aaron.c}.}, label={lst:cap03:anexo:c}]{capitulos/cap03/codigo/fourier_aaron.c}
 
-\subsection{Fase 3: código de \texttt{verificacion\_serie.py}}
-\label{sec:cap03:anexo:python}
+\subsection{Fase 3: código de \texttt{fourier\_f3\_lino.c}}
+\label{sec:cap03:anexo:lino}
 
-Script en Python de Aarón Ugalde Téllez que evalúa la misma suma de forma serial y calcula los errores de las tablas \ref{tab:cap03:aaron:comparacion} y \ref{tab:cap03:aaron:mse}.
+Programa de Lino Ehecatl Romero Rosales que calcula los coeficientes de la Serie de Fourier con 100 procesos hijos, memoria compartida y un semáforo System V.
 
-\lstinputlisting[language=Python, caption={Script \texttt{verificacion\_serie.py}.}, label={lst:cap03:anexo:python}]{capitulos/cap03/codigo/verificacion_serie.py}
+\lstinputlisting[style=C, caption={Programa \texttt{fourier\_f3\_lino.c}.}, label={lst:cap03:anexo:lino}]{capitulos/cap03/codigo/fourier_f3_lino.c}
+
+% PENDIENTE (Magaly Lopez Castro): \subsection{Fase 3: código de ...} con el
+%   programa completo; en la sección 3.2 sólo están los fragmentos. Guardar el
+%   archivo en capitulos/cap03/codigo/ y listarlo con \lstinputlisting.
+
+\subsection{Fase 3: código de \texttt{fourier\_x5.c}}
+\label{sec:cap03:anexo:said}
+
+Programa de Said Carbot Cruz Trejo que calcula la Serie de Fourier de $f(x) = x^{5}$ con 100 procesos hijos, memoria compartida System V y un semáforo POSIX.
+
+\lstinputlisting[style=C, caption={Programa \texttt{fourier\_x5.c}.}, label={lst:cap03:anexo:said}]{capitulos/cap03/codigo/fourier_x5.c}
