@@ -1,0 +1,65 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage[spanish, es-tabla]{babel} 
+\usepackage{amsmath}
+\usepackage{setspace}
+\usepackage{cite}
+
+\title{\textbf{Practica 5}}
+
+
+\begin{document}
+\begin{spacing}{1.15}
+
+\maketitle
+
+\section*{Introducción}
+
+En la actualidad, el procesamiento de grandes volúmenes de datos y la ejecución de cálculos complejos requieren enfoques más eficientes que los proporcionados por la programación secuencial tradicional. El cómputo paralelo surge como una solución fundamental ante las limitaciones físicas de las frecuencias de reloj en los procesadores modernos, permitiendo la ejecución simultánea de múltiples tareas para reducir significativamente los tiempos de procesamiento. Dentro de los sistemas operativos modernos, particularmente en entornos Unix/Linux, una de las herramientas más potentes para implementar este paradigma es el uso de hilos de ejecución (threads) \cite{marquez2015}.
+
+A diferencia de los procesos tradicionales, que poseen su propio espacio de direcciones de memoria de manera aislada, los hilos son entidades más ligeras que comparten el mismo espacio de memoria, la sección de datos y los recursos del sistema operativo asignados al proceso padre que los originó. Esta característica arquitectónica resulta sumamente ventajosa, ya que reduce la sobrecarga (overhead) computacional inherente a la creación de tareas y facilita enormemente la comunicación entre ellas. Al residir en la misma memoria de acceso aleatorio (RAM), distintos hilos pueden acceder y modificar estructuras de datos compartidas de forma directa. 
+
+Sin embargo, esta ventaja también introduce desafíos significativos en el diseño de software. La concurrencia exige mecanismos precisos de coordinación y comunicación para evitar condiciones de carrera y garantizar la integridad de los datos. En el lenguaje de programación C, esta comunicación entre el proceso padre y sus hilos derivados se gestiona frecuentemente a través de apuntadores. El uso de apuntadores permite que el proceso principal asigne dinámicamente bloques de memoria para los datos de entrada e instruya a cada hilo exactamente sobre qué fragmento de información debe operar, recibiendo posteriormente los resultados en direcciones de memoria predefinidas sin necesidad de realizar copias redundantes de la información \cite{marquez2015}.
+
+En este contexto teórico y práctico, el presente trabajo tiene como \textbf{objetivo general} desarrollar programas en lenguaje C que permitan la creación de hilos y la correcta comunicación entre ellos. De manera más granular, el \textbf{objetivo específico} radica en establecer un canal de comunicación robusto entre los hilos de trabajo (worker threads) y el proceso padre utilizando apuntadores, validando así la capacidad de dividir una carga de trabajo matemática y consolidar sus resultados.
+
+Para ilustrar y poner en práctica estos conceptos, el problema a resolver consiste en el procesamiento paralelo de una estructura matricial específica. El proceso padre es responsable de inicializar y alojar en memoria RAM la siguiente matriz de orden $3 \times 9$:
+
+\begin{equation*}
+\begin{pmatrix}
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 \\
+1 & 3 & 5 & 7 & 9 & 11 & 13 & 15 & 17 \\
+2 & 4 & 6 & 8 & 10 & 12 & 14 & 16 & 18
+\end{pmatrix}
+\end{equation*}
+
+Una vez estructurados los datos, la estrategia de paralelización dictamina que el proceso padre debe crear tres hilos independientes. Cada uno de estos hilos asume la responsabilidad de procesar una fila completa de la matriz, reportando su identificador único al sistema. La carga de trabajo asignada a cada hilo consiste en realizar la multiplicación secuencial de todos los elementos contenidos en su fila respectiva. 
+
+La fase crítica de la práctica ocurre tras el procesamiento: el sistema debe garantizar que el proceso padre tenga la capacidad de detectar cuándo han concluido su labor todos los hilos hijos. Solamente cuando el último hilo ha finalizado su cálculo, el proceso padre debe proceder a leer los resultados obtenidos a través de los apuntadores compartidos y mostrarlos de forma estructurada en pantalla. Este flujo de trabajo no solo demuestra la eficiencia del cómputo paralelo para dividir tareas aritméticas, sino que también subraya la importancia de la sincronización y la gestión de memoria compartida en la arquitectura de sistemas operativos Linux.
+
+\newpage
+
+\section*{Conclusión Personal}
+
+El desarrollo de esta práctica representó una inmersión profunda en los fundamentos del cómputo concurrente, alejándose de los paradigmas secuenciales para abordar el manejo y la administración de hilos directamente desde el lenguaje C. Al implementar la multiplicación de los elementos de una matriz de $3 \times 9$, dividiendo la carga de trabajo fila por fila entre hilos independientes, se comprueba empíricamente cómo la distribución de tareas optimiza el uso de los recursos. 
+
+A nivel técnico, el mayor reto y a la vez el aprendizaje más valioso consistió en orquestar la comunicación entre el proceso padre y los hilos hijos empleando apuntadores. Manipular la memoria compartida en RAM exige una lógica de programación sumamente rigurosa. Es indispensable asegurar que cada hilo acceda exactamente a la dirección de memoria que le corresponde para leer sus datos de entrada y escribir su resultado, evitando el riesgo de sobrescribir información o de generar violaciones de segmento (segmentation faults). Asimismo, la fase de sincronización resultó reveladora; el proceso padre no puede simplemente lanzar los hilos y continuar su camino asumiendo que los datos estarán listos. Requiere mecanismos explícitos para monitorear el estado de los hilos, aguardar a que todos terminen su ejecución y, solo entonces, recolectar los resultados a través de los apuntadores para presentarlos en pantalla.
+
+Más allá de la sintaxis del código, la ejecución de estos programas desde la terminal en un entorno Linux resalta la enorme flexibilidad y robustez que ofrecen los sistemas basados en Unix para el desarrollo a bajo nivel. Interactuar directamente con el planificador del sistema operativo permite comprender qué es lo que realmente sucede detrás de las abstracciones modernas. En un ámbito donde se persigue la eficiencia algorítmica y donde técnicas como la optimización de procesos o incluso las búsquedas de fuerza bruta requieren explotar al máximo el hardware disponible, entender cómo paralelizar las instrucciones de un programa representa una ventaja técnica sustancial. Modificar un algoritmo para que aproveche arquitecturas concurrentes no solo mejora los tiempos de ejecución, sino que transforma por completo la manera en la que se modela un problema.
+
+Dentro de la formación en Ingeniería en Inteligencia Artificial, esta práctica adquiere un nivel de relevancia crítico. La gran mayoría de los modelos modernos, desde la extracción de características en técnicas de procesamiento de lenguaje natural hasta el entrenamiento de redes neuronales y algoritmos bioinspirados, dependen intrínsecamente del cómputo paralelo. Las cargas de trabajo que implican enormes matrices y grandes volúmenes de información superan rápidamente las capacidades de la programación secuencial. 
+
+Comprender desde ahora, a nivel de lenguaje C, cómo se instancian los hilos, cómo comparten un mismo espacio de memoria y cómo sincronizan sus ciclos de vida, es sentar los cimientos tecnológicos necesarios para el futuro. Este entendimiento será vital al escalar proyectos y al interactuar más adelante con arquitecturas avanzadas, 
+supercómputo y frameworks de procesamiento paralelo masivo. En síntesis, esta práctica superó la meta inicial de la gestión y operación de una matriz; logró afianzar conceptos vitales sobre arquitectura de computadoras, control seguro de memoria y optimización matemática, pilares que resultan indispensables para el desarrollo de tecnologías inteligentes eficientes.
+
+\vspace{1cm} % Espacio antes de las referencias para asegurar formato limpio
+
+\renewcommand{\refname}{Referencias}
+\begin{thebibliography}{9}
+\bibitem{marquez2015}
+F. Márquez, \textit{Unix: Programación Avanzada}. Madrid, España: Grupo Editorial Ra-Ma, 2015.
+\end{thebibliography}
+
+\end{spacing}
+\end{document}

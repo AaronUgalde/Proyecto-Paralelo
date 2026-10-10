@@ -1,0 +1,101 @@
+\documentclass{article}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amsmath} % Paquete para mejor soporte matemático
+
+\begin{document}
+
+% ==========================================
+% PLANTILLA INDIVIDUAL PARA INTEGRANTE
+% Nombre: Lino Ehecatl Romero Rosales
+% ==========================================
+
+\section*{1. Marco Teórico}
+
+\subsection*{1.1. Cómputo Concurrente y Cómputo Paralelo}
+Al abordar el desarrollo de software multihilo, es necesario distinguir entre concurrencia y paralelismo:
+\begin{itemize}
+    \item \textbf{Concurrencia:} Propiedad de un sistema para gestionar múltiples tareas intercalando su ejecución en lapsos de tiempo superpuestos. En procesadores de un solo núcleo, esto se logra mediante la alternancia rápida de contextos (\textit{time-slicing}) coordinada por el planificador del sistema operativo.
+    \item \textbf{Paralelismo:} Ejecución simultánea de dos o más instrucciones en el mismo instante. Requiere soporte explícito de hardware, como procesadores multinúcleo (\textit{multi-core}) o sistemas multiprocesador.
+\end{itemize}
+
+El límite teórico del incremento de rendimiento al paralelizar un algoritmo está acotado por la Ley de Amdahl:
+\[
+S(n) = \frac{1}{(1 - p) + \frac{p}{n}}
+\]
+Donde \(S(n)\) representa la ganancia en velocidad (\textit{speedup}), \(p\) es la fracción del código que se puede ejecutar en paralelo y \(n\) es la cantidad de núcleos o hilos de procesamiento disponibles.
+
+\subsection*{1.2. Arquitectura de Hilos en Sistemas Operativos}
+Un proceso es la unidad básica de asignación de recursos administrada por el sistema operativo. Cada proceso posee un espacio de direccionamiento de memoria virtual aislado, tabla de descriptores de archivos, registros de CPU y su propio Bloque de Control de Proceso (PCB). La creación y el cambio de contexto (\textit{context switch}) entre procesos conllevan una sobrecarga relevante debido al intercambio de tablas de páginas y mapas de memoria.
+
+En contraste, un hilo (\textit{thread}) es la unidad mínima de ejecución asignable al procesador. Los hilos creados dentro de un mismo proceso comparten el espacio de direccionamiento global, permitiendo una comunicación más rápida y reduciendo los costos de creación y conmutación.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|c|c|}
+    \hline
+    \textbf{Recurso / Componente} & \textbf{Compartido} & \textbf{Privado por Hilo} \\ \hline
+    Código del programa (\texttt{.text}) & Sí & No \\ \hline
+    Variables globales y estáticas (\texttt{.data}) & Sí & No \\ \hline
+    Memoria dinámica (\textit{Heap}) & Sí & No \\ \hline
+    Descriptores de archivos y sockets & Sí & No \\ \hline
+    Pila de llamadas (\textit{Stack}) y variables locales & No & Sí \\ \hline
+    Contador de Programa (PC) y Registros CPU & No & Sí \\ \hline
+    Identificador de Hilo (TID) & No & Sí \\ \hline
+    \end{tabular}
+    \caption{Distribución de recursos compartidos y privados entre hilos de un mismo proceso.}
+    \label{tab:recursos_hilos}
+\end{table}
+
+\subsubsection*{Modelos de Administración de Hilos}
+\begin{enumerate}
+    \item \textbf{Modelo Muchos a Uno (\(N:1\)):} Varios hilos en espacio de usuario se asignan a un solo hilo de kernel. Si un hilo ejecuta una llamada al sistema bloqueante, se detiene el proceso completo. No aprovecha arquitecturas multinúcleo.
+    \item \textbf{Modelo Uno a Uno ($1:1$):} Cada hilo de usuario se mapea con un hilo del kernel. Ofrece paralelismo real y permite que otros hilos continúen ejecutándose si uno se bloquea. Es el esquema por defecto en sistemas Linux a través de \texttt{NPTL} (\textit{Native POSIX Thread Library}).
+    \item \textbf{Modelo Muchos a Muchos (\(M:N\)):} Multiplexa \(M\) hilos de usuario sobre \(N\) hilos de kernel (\(M \ge N\)), combinando la baja sobrecarga en usuario con la distribución de carga en el kernel.
+\end{enumerate}
+
+\subsection*{1.3. Concurrencia, Sincronización y Exclusión Mutua}
+Dado que los hilos comparten el \textit{heap} y la memoria global, el acceso simultáneo a variables compartidas puede provocar condiciones de carrera (\textit{race conditions}), haciendo que el resultado final varíe según el orden de planificación de la CPU.
+
+Para proteger la sección crítica (el segmento de código donde se lee o modifica un recurso compartido), se requiere implementar exclusión mutua:
+\begin{itemize}
+    \item \textbf{Cerrojos Mutex:} Variables de tipo \texttt{pthread\_mutex\_t} que funcionan como bloqueos binarios para asegurar que un solo hilo acceda a la sección crítica a la vez.
+    \item \textbf{Variables de Condición:} Mecanismos que permiten suspender la ejecución de un hilo hasta que reciba una señal de notificación (\texttt{pthread\_cond\_wait}, \texttt{pthread\_cond\_signal}).
+    \item \textbf{Semáforos:} Estructuras basadas en contadores enteros que regulan el acceso concurrente a un número determinado de recursos.
+\end{itemize}
+
+El uso incorrecto de estos mecanismos puede originar interbloqueos (\textit{deadlocks}), donde los hilos quedan suspendidos indefinidamente esperando recursos que se retienen mutuamente, o inanición (\textit{starvation}), cuando un hilo no logra acceder al recurso por la prioridad de otros.
+
+\subsection*{1.4. Programación de Hilos en C (\texttt{pthread.h})}
+En sistemas POSIX como Linux, la interfaz estándar para gestionar hilos es la biblioteca \texttt{pthread.h}. Las funciones principales utilizadas son:
+\begin{itemize}
+    \item \texttt{pthread\_create()}: Instancia e inicia un nuevo hilo ejecutando la función pasada como argumento mediante un puntero \texttt{void*}.
+    \item \texttt{pthread\_join()}: Bloquea la ejecución del hilo principal hasta que el hilo especificado termine, recolectando su valor de retorno y liberando sus recursos.
+    \item \texttt{pthread\_exit()}: Termina la ejecución del hilo de forma limpia.
+    \item \texttt{pthread\_mutex\_lock()} / \texttt{pthread\_mutex\_unlock()}: Delimitan la entrada y salida de las secciones críticas.
+\end{itemize}
+
+\subsection*{1.5. Referencias Bibliográficas}
+\begin{itemize}
+    \item Butenhof, D. R. (1997). \textit{Programming with POSIX threads}. Addison-Wesley Professional.
+    \item Kernighan, B. W., \& Ritchie, D. M. (1988). \textit{The C programming language} (2.ª ed.). Prentice Hall.
+    \item Silberschatz, A., Galvin, P. B., \& Gagne, G. (2018). \textit{Operating system concepts} (10.ª ed.). John Wiley \& Sons.
+    \item Stevens, W. R., \& Rago, S. A. (2013). \textit{Advanced programming in the UNIX environment} (3.ª ed.). Addison-Wesley Professional.
+    \item Tanenbaum, A. S., \& Bos, H. (2015). \textit{Modern operating systems} (4.ª ed.). Pearson.
+\end{itemize}
+
+
+\section*{4. Conclusiones}
+
+\subsection*{Conclusión Romero Rosales Lino Ehecatl}
+
+El desarrollo de esta práctica fue un poco mas complejo pues esta se alejaba de algo secuencial para abordar la administración directa de hilos en la que accedimos mediante la biblioteca POSIX Threads en Linux. Al implementar el procesamiento de una matriz, dividiendo la carga de trabajo entre tres hilos independientes para que cada uno calculara el producto acumulado de los elementos de su fila, se comprobó cómo la descomposición de tareas permite explotar la memoria compartida de manera eficiente.
+
+El reto central consistio en orquestar la comunicación entre el hilo padre y los hilos hijos utilizando únicamente punteros. Debido a que la rutina de instanciación recibe un puntero de tipo vacío, fue necesario empaquetar la dirección en memoria de cada fila, la cantidad de columnas y el identificador de cada hilo dentro de una estructura de datos. Al realizar la conversión de tipo al inicio de la ejecución de cada hilo hijo, se garantizó un acceso a los datos sin duplicar memoria. Manipular el espacio de direccionamiento global exige una lógica estricta para asegurar que cada hilo lea y escriba en las direcciones correctas, evitando condiciones de carrera. Asimismo cuando llegamos a la fase de sincronización nos pudo mostrar la necesidad de llamadas explícitas usando \texttt{pthread\_join}, para asi garantizarnos que el proceso padre recolectara los resultados consolidados de los tres productos únicamente cuando todos los hilos hubieran concluido su ejecución.
+
+Más allá de la sintaxis y de las reglas del proyecto —como la automatización de la compilación mediante usando \texttt{Makefile}, trabajar directamente sobre la terminal de Linux resalta la robustez de los sistemas POSIX para el desarrollo de procesos en paralelo. Comprender cómo interactúa el código con el planificador del sistema operativo permite asimilar los mecanismos reales que llegan a asmilarse a las abstracciones modernas. En puntos donde el procesamiento en paralelo es mas eficiente para saber paralelizar instrucciones representa un gran aprendizaje fundamental que transforma la manera en la que se diseñan los sistemas.
+
+Esto ayudandonos en el aprendizaje para el avanvce de la Inteligencia Artificial, esta experiencia es un gran aprendizaje para la implementacion de procesos paralelos en la IA. El entrenamiento de redes neuronales, la extracción de características en el procesamiento de lenguaje natural y los algoritmos bioinspirados se basan en el uso de operaciones matriciales y procesamiento paralelo. El empezar a comprender cómo se instancian los hilos, cómo comparten memoria de forma segura y cómo se sincronizan sus ciclos de vida constituye la base para emepezar a hacer la creacion de arquitecturas mas complejas como podria ser trabajar con computadoras o sevidores mas complejos tanto como llegar a optimizar las cargas de trabajo que exigen las tecnologías inteligentes del futuro.
+\end{document}
