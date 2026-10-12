@@ -1,48 +1,199 @@
-% =====================================================================
-%  Capítulo 4 — contenido
-%
-%  Sólo el cuerpo del capítulo: sin preámbulo, sin \begin{document},
-%  sin portada, sin índices y sin bibliografía (los pone el documento
-%  contenedor: cap04.tex para la entrega suelta, libro.tex para el libro).
-%
-%  Convenciones:
-%   * Figuras en capitulos/cap04/figuras/ con prefijo cap04-
-%     y citadas sólo por nombre: \includegraphics{cap04-esquema.png}
-%   * Etiquetas: fig:cap04:..., tab:cap04:..., sec:cap04:..., lst:cap04:...
-%   * Citas con \cite{clave} sobre bib/referencias.bib
-% =====================================================================
+\chapter{Programación con Hilos}
 
-\chapter{\TituloCapCuatro}
-\label{cap:04}
+% ==========================================
+% SECCIÓN 4.1
+% ==========================================
+\section{Marco teórico}
 
-\section{Introducción}
-\label{sec:cap04:introduccion}
+En el ámbito de los sistemas operativos y la programación concurrente, un hilo (o \textit{thread}) es la unidad de procesamiento más pequeña que puede ser planificada por un sistema operativo. A diferencia de los procesos independientes, que cuentan con su propio espacio de memoria aislado, los hilos originados a partir de un mismo proceso padre comparten la sección de datos, el espacio de direcciones y los recursos del sistema (como descriptores de archivos). Esta arquitectura de memoria compartida hace que el cambio de contexto entre hilos sea considerablemente más rápido y requiera menos recursos computacionales que el cambio entre procesos, razón por la cual se les conoce como "procesos ligeros".
 
-Contenido pendiente.
+En el lenguaje de programación C, particularmente dentro de entornos basados en Unix/Linux, la implementación estándar para la gestión de hilos se realiza a través de la biblioteca POSIX Threads, comúnmente referida como \texttt{pthreads} (incluyendo la cabecera \texttt{<pthread.h>}). Esta interfaz de programación de aplicaciones (API) proporciona las primitivas necesarias para crear, sincronizar y destruir hilos. 
 
-\section{Desarrollo}
-\label{sec:cap04:desarrollo}
+El ciclo de vida básico de un hilo en C mediante \texttt{pthreads} involucra funciones fundamentales como:
+\begin{itemize}
+    \item \texttt{pthread\_create()}: Instancia un nuevo hilo de ejecución, asignándole una subrutina específica (función) que debe ejecutar concurrentemente.
+    \item \texttt{pthread\_join()}: Bloquea la ejecución del hilo invocador (usualmente el hilo principal o proceso padre) hasta que el hilo objetivo haya finalizado su tarea, permitiendo la recolección de resultados y asegurando la correcta sincronización.
+    \item \texttt{pthread\_exit()}: Termina la ejecución del hilo actual, retornando un valor o puntero de estado al proceso padre.
+\end{itemize}
 
-Contenido pendiente.
+El uso de hilos en C es ideal para el cómputo de alto rendimiento, como la resolución de las series de Fourier abordadas en este proyecto, ya que permite paralelizar el cálculo de diferentes armónicos o intervalos matemáticos simultáneamente, aprovechando la arquitectura multinúcleo del procesador.
 
-% Ejemplo de figura (descomenta y ajusta):
-% \Figura{cap04-ejemplo.png}{0.7}{Pie de la figura.}{capjemplo}
+% ==========================================
+% SECCIÓN 4.2 (Lino)
+% ==========================================
+\section{Programación con hilos en lenguaje C y en la plataforma GNU-Linux}
 
-% Ejemplo de tabla (descomenta y ajusta):
-% \begin{table}[H]
-%     \centering
-%     \caption{Pie de la tabla.}
-%     \label{tab:capjemplo}
-%     \begin{tabular}{lrr}
-%         \toprule
-%         \textbf{Columna} & \textbf{Valor} & \textbf{Unidad} \\
-%         \midrule
-%         Ejemplo & 0.00 & s \\
-%         \bottomrule
-%     \end{tabular}
-% \end{table}
+En esta sección se presenta la implementación de la programación con hilos en lenguaje C sobre la plataforma GNU-Linux, aplicando los cálculos de los términos de la serie de Fourier de la función propuesta ($f(x) = -\frac{1}{4}x^4 + 3$). Se implementó el uso de al menos $100$ hilos concurrentes.
 
-\section{Conclusiones del capítulo}
-\label{sec:cap04onclusiones}
+\subsection{Fragmentos de códigos explicados de la programación con hilos}
+Para la resolución concurrente del problema, se utilizó la biblioteca POSIX Threads (\texttt{pthreads}) en lenguaje C. El siguiente fragmento de código muestra la rutina ejecutada por cada hilo, la cual calcula de manera independiente una porción de los coeficientes armónicos ($n$, $a_n$, $b_n$) distribuyendo la carga de trabajo:
 
-Contenido pendiente.
+\begin{verbatim}
+void *calcular_coeficientes_fourier(void *arg) {
+    ThreadData *data = (ThreadData *)arg;
+    int id = data->thread_id;
+    int total = data->total_threads;
+
+    int terminos_por_hilo = NUM_THREADS / total;
+    int inicio = id * terminos_por_hilo;
+    int fin = inicio + terminos_por_hilo;
+
+    for (int i = inicio; i < fin; i++) {
+        int n = i + 1; // n armónico de 1 a 100
+        
+        // Cálculo de los coeficientes para f(x) = -(1/4)x^4 + 3
+        double an = (2.0 * ((n % 2 == 0) ? 1.0 : -1.0) * 
+                    (6.0 - (n * n * M_PI * M_PI))) / (n * n * n * n);
+        double bn = 0.0; // Función par
+
+        data->resultados[i].n = n;
+        data->resultados[i].an = an;
+        data->resultados[i].bn = bn;
+    }
+    pthread_exit(NULL);
+}
+\end{verbatim}
+
+En el proceso principal (\texttt{main}), se crean los $100$ hilos mediante la función \texttt{pthread\_create()}, asignándoles sus respectivas estructuras de datos, y se sincronizan con \texttt{pthread\_join()} para asegurar la finalización correcta de los cálculos antes de exportar los resultados a un archivo.
+
+\subsection{Compilación}
+La compilación del programa en la plataforma GNU-Linux se realizó mediante el compilador GCC, enlazando explícitamente la biblioteca de hilos (\texttt{-pthread}) y la biblioteca matemática (\texttt{-lm}). Como se observa en la Figura \ref{fig:compilacion}, el reporte de la terminal muestra que la compilación se ejecutó de forma limpia, evitando así la muestra de algún error o advertencia (\textit{warnings}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{capitulos/cap04/figuras/imagen1.jpeg}
+    \caption{Captura de pantalla de la compilación limpia del programa de hilos en la terminal de GNU-Linux.}
+    \label{fig:compilacion}
+\end{figure}
+
+\subsection{Ejecución de los programas}
+A continuación se muestra la ejecución del programa compilado en la terminal de GNU-Linux. Tras la inicialización de los $100$ hilos concurrentes, el programa realiza los cómputos correspondientes y descarga automáticamente la información obtenida en un archivo estructurado (\texttt{fourier\_hilos\_resultados.csv}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{capitulos/cap04/figuras/imagen2.jpeg}
+    \caption{Captura de pantalla de la ejecución de los programas y confirmación de la exportación de datos.}
+    \label{fig:ejecucion}
+\end{figure}
+
+\subsection{Gráficas, Figuras y su Explicación}
+La información obtenida en el archivo CSV generado por los hilos fue descargada e importada al archivo de Excel utilizado en las fases anteriores para trazar las gráficas definitivas del proyecto.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{capitulos/cap04/figuras/imagen3.png}
+    \caption{Gráficas de la serie de Fourier generadas en Excel a partir de los datos procesados por los hilos.}
+    \label{fig:graficas}
+\end{figure}
+
+\noindent\textbf{Explicación de las figuras:} 
+Como se aprecia en la Figura \ref{fig:graficas}, las gráficas modelan el comportamiento de la serie armónica. Se explica detalladamente que a medida que el número de armónicos $n$ aumenta, la amplitud de los coeficientes $a_n$ decrece, lo que demuestra visualmente cómo converge la serie hacia la función original.
+
+\subsection{Comparación de resultados con fases anteriores}
+Al contrastar los resultados obtenidos en esta fase de hilos con los obtenidos en los capítulos previos (programación con procesos y análisis matemático al inicio), se concluye lo siguiente:
+\begin{enumerate}
+    \item \textbf{Precisión numérica:} Los valores de los coeficientes $a_n$ y $b_n$ calculados mediante los $100$ hilos son \textbf{exactamente idénticos} a los calculados en el Capítulo 3 con procesos y en la fase analítica del Capítulo 1, garantizando la consistencia matemática del modelo computacional.
+    \item \textbf{Eficiencia operativa:} A diferencia de los procesos tradicionales (\texttt{fork()}), los cuales duplican los espacios de memoria e involucran mecanismos pesados de comunicación interprocesos (IPC), los hilos comparten un mismo espacio de direcciones de memoria de forma nativa. Esto reduce drásticamente la sobrecarga por cambio de contexto (\textit{context switching}) y optimiza de manera notable el rendimiento del equipo de cómputo al paralelizar de forma directa el cálculo de los armónicos.
+\end{enumerate}
+
+% ==========================================
+% SECCIÓN 4.3
+% ==========================================
+\section{Análisis de la implementación con hilos}
+
+El desarrollo de esta fase se fundamentó en el paradigma de programación paralela utilizando memoria compartida. A continuación, se presenta el análisis técnico de la implementación y las características del entorno de ejecución.
+
+\subsection*{Características de la implementación}
+Para sintetizar la metodología y el diseño de software empleados en la resolución concurrente de la serie de Fourier, la Tabla \ref{tab:caracteristicas_implementacion} detalla los aspectos fundamentales del código desarrollado.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|l|p{10cm}|}
+\hline
+\textbf{Atributo Técnico} & \textbf{Especificación} \\ \hline
+\textbf{Lenguaje de Programación} & C nativo \\ \hline
+\textbf{Biblioteca de Concurrencia} & POSIX Threads (\texttt{pthreads}) \\ \hline
+\textbf{Paradigma} & Memoria compartida y Paralelismo de Datos (\textit{Data Parallelism}) \\ \hline
+\textbf{Estructura de Hilos} & 101 hilos en total: 1 hilo principal (padre) y 100 hilos de trabajo (\textit{workers}) \\ \hline
+\textbf{Distribución de la Carga} & Cada hilo trabajador calcula simultáneamente los coeficientes $a_n$ y $b_n$ de un armónico en particular \\ \hline
+\textbf{Sincronización} & Barrera estricta mediante \texttt{pthread\_join()} para asegurar la integridad de los resultados antes de exportar \\ \hline
+\textbf{Comunicación de Memoria} & Intercambio de variables estructuradas mediante el casteo de punteros genéricos (\texttt{void *arg}) \\ \hline
+\textbf{Banderas de Compilación} & \texttt{-pthread} (enlace concurrente) y \texttt{-lm} (biblioteca matemática estándar) \\ \hline
+\end{tabular}
+\caption{Características técnicas y metodológicas de la implementación de la Fase 4.}
+\label{tab:caracteristicas_implementacion}
+\end{table}
+
+\subsection*{Análisis del lenguaje y técnica utilizada}
+La implementación se desarrolló íntegramente en \textbf{lenguaje C} haciendo uso de la biblioteca \textbf{POSIX Threads (pthreads)}. Se eligió C debido a su capacidad de interacción a bajo nivel con el planificador del sistema operativo GNU/Linux y su nula sobrecarga (overhead) en tiempo de ejecución en comparación con lenguajes interpretados. La técnica principal consistió en la paralelización de datos (Data Parallelism); el proceso principal (padre) descompone el dominio de la serie de Fourier a evaluar y despacha fragmentos de la carga matemática a múltiples hilos de trabajo (worker threads). Esto transforma un cálculo algorítmico de complejidad secuencial en uno concurrente, reduciendo el tiempo total de procesamiento.
+
+\subsection*{Estructura de procesos e hilos}
+\begin{itemize}
+    \item \textbf{Cantidad de procesos:} 1 (Un único proceso principal o padre que orquesta la ejecución, reserva la memoria y exporta los datos a formato CSV).
+    \item \textbf{Cantidad de hilos:} 101 (1 hilo principal y 100 hilos hijos creados con \texttt{pthread\_create}. Cada hilo hijo está dedicado al cálculo simultáneo de los coeficientes $a_n$ y $b_n$ para los 100 primeros armónicos de la serie de Fourier).
+\end{itemize}
+
+\subsection*{Características del equipo de cómputo}
+Las pruebas de compilación y ejecución concurrente se llevaron a cabo en un equipo \textbf{MSI Thin 15 B13V} operando bajo un entorno nativo de \textbf{Ubuntu Linux}. Las especificaciones técnicas del hardware son las siguientes:
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|l|p{10cm}|}
+\hline
+\textbf{Componente} & \textbf{Especificación Técnica} \\ \hline
+\textbf{Procesador} & Intel Core i5-13420H (13va Generación "Raptor Lake") \\ \hline
+\textbf{Núcleos} & 8 núcleos físicos (4 Performance-cores y 4 Efficient-cores) con 12 hilos lógicos en total \\ \hline
+\textbf{Velocidad del CPU} & Frecuencia base de 2.10 GHz (con Turbo Boost máximo de hasta 4.60 GHz) \\ \hline
+\textbf{Tarjeta Gráfica} & NVIDIA GeForce RTX 3050 \\ \hline
+\textbf{Memoria RAM} & 16 GB, tipo DDR4 \\ \hline
+\textbf{Velocidad de RAM} & 3200 MHz \\ \hline
+\textbf{Memoria Caché} & 12 MB Intel Smart Cache (Caché L3 compartida), optimizada para el acceso rápido de múltiples núcleos \\ \hline
+\textbf{Sistema Operativo} & Ubuntu Linux (Kernel optimizado para arquitecturas híbridas y gestión SMP) \\ \hline
+\end{tabular}
+\caption{Características técnicas del equipo de cómputo empleado para la fase 4.}
+\label{tab:hardware_specs}
+\end{table}
+
+\clearpage
+
+% ==========================================
+% CONCLUSIONES PERSONALES
+% ==========================================
+\section*{Conclusión Cruz Trejo}
+
+La transicion metodologica que hemos llevado desde la solucion analitica de la serie de Fourier, pasando por la creacion de procesos pesados (forks), hasta llegar finalmente a la orquestacion de hilos (pthreads) en C, ilustra a la perfeccion como los ingenieros hemos intentado exprimir al maximo la arquitectura de Von Neumann.
+Tecnicamente, el reto de esta fase no fue la matematica de la funcion $f(x) = -(1/4)x^4 + 3$, sino la arquitectura de la concurrencia. Instanciar 100 hilos, uno por cada armonico, requirio un diseno cuidadoso de la memoria compartida. Al definir las estructuras \texttt{TerminoFourier} y \texttt{ThreadData}, logramos que cada hilo recibiera su contexto a traves de un simple puntero generico, calculara sus respectivos coeficientes $a_n$ y $b_n$, y los depositara ordenadamente en un arreglo comun. A diferencia del capitulo anterior, donde los procesos nos obligaban a lidiar con la costosa duplicacion del espacio de memoria, los hilos nos permitieron trabajar de forma elegante y ligera.
+Sin embargo, mientras se programaba la recoleccion de estos 100 armonicos mediante sincronizacion clasica con \texttt{pthread\_join}, no pude evitar relacionarlo con mi area de mayor interes: la computacion cuantica. En el fondo, lo que estamos haciendo con pthreads es el intento de la computacion clasica por simular un paralelismo masivo. Dividimos el tiempo de CPU y asignamos tareas a diferentes nucleos para calcular los coeficientes de Fourier de manera simultanea. Pero si abordaramos este mismo problema matematico utilizando un algoritmo como la Transformada Cuantica de Fourier (QFT), el paradigma cambiaria por completo. En lugar de necesitar 100 hilos (o 100 nucleos fisicos) iterando paso a paso, un sistema cuantico aprovecharia la superposicion de estados para evaluar estas amplitudes de probabilidad de forma intrinsecamente paralela, logrando una aceleracion exponencial frente a nuestro enfoque clasico.
+A pesar de esa comparacion, esta practica me hizo valorar muchisimo la madurez del hardware y software clasico. En la actual era NISQ (Noisy Intermediate-Scale Quantum), lidiar con qubits tipo Transmon implica luchar constantemente contra la decoherencia y el ruido termico. En contraste, nuestro programa en C utilizando pthreads es bellamente determinista y estable. Los coeficientes que exportamos al archivo CSV son matematicamente exactos cada vez que corremos el ejecutable, sin necesidad de aplicar codigos de correccion de errores.
+Finalmente, la integracion de los datos exportados por nuestro programa en C hacia nuestra plantilla de Excel confirmo empiricamente que la logica de sincronizacion fue un exito. Ver como la sumatoria de la serie converge perfectamente hacia la grafica de la funcion original es la mejor prueba de que no hubo condiciones de carrera al escribir en la memoria. En conclusion, dominar la concurrencia clasica mediante pthreads no solo cumple con los objetivos de esta asignatura, sino que me proporciona una base ingenieril solida y necesaria. Entender como el hardware clasico gestiona sus cuellos de botella es el primer paso indispensable antes de proponer soluciones en arquitecturas mucho mas complejas y disruptivas como las que nos esperan en el futuro.
+
+\clearpage
+
+\section*{Conclusión Romero Rosales}
+
+Hacer esta práctica de la serie de Fourier usando hilos en C sobre Linux me sirvió bastante para entender de forma práctica cómo funciona la concurrencia a nivel de sistema operativo. A diferencia de lo que hicimos en la fase pasada con procesos, donde cada uno se crea por separado y hay que batallar con la memoria compartida y los semáforos para que no se mezclen los datos, con los hilos el proceso fue más directo porque todos comparten el mismo espacio de memoria dentro del mismo programa. Eso hace que la comunicación sea mucho más natural y que la computadora no gaste tantos recursos haciendo cambios pesados entre tareas.
+Al principio, organizar el código para repartir el cálculo de los 100 armónicos entre los 100 hilos exigió poner atención en cómo se estructuraban los datos, asegurando que cada hilo supiera exactamente qué parte del trabajo le tocaba sin estorbar a los demás. Sin embargo, una vez que definimos bien las estructuras y el paso de argumentos, el programa compiló limpio desde la terminal, y la ejecución fue inmediata. Al revisar el archivo CSV generado y vaciar los datos a Excel para armar las gráficas, pude comprobar que los coeficientes salieron exactamente iguales a los que ya habíamos calculado en las fases pasadas, lo que demuestra que cambiar al modelo de hilos no altera para nada la precisión matemática de la serie.
+En lo personal, toda esta experiencia me ayudó a ver las ventajas reales de programar de forma concurrente cuando tienes que resolver tareas repetitivas o pesadas. Trabajar desde la terminal, manejar las librerías de hilos de POSIX, compilar con GCC y automatizar todo con un Makefile me dio una mejor idea de cómo se estructuran proyectos más grandes en sistemas unidos por hilos. Al final, te das cuenta de que usar hilos ahorra tiempo de procesamiento y aprovecha mejor los núcleos de la computadora así pudimos lograr generar cada armónico de la serie de Fourier sin necesidad de que se generara uno por uno y haciendo mucho más rápido el procesamiento sin necesidad de sobreponer algún elemento, creo que el implementar hilos para resolver tareas en paralelo es algo muy útil si queremos ahorrar tiempo y así logramos aprovechar al máximo nuestras computadoras.
+
+\clearpage
+
+\section*{Conclusión López Castro}
+
+La culminación de esta fase del proyecto, enfocada en la resolución de las series de Fourier mediante la programación concurrente con hilos, marca un punto de inflexión significativo respecto a las metodologías secuenciales aplicadas en las fases anteriores. El verdadero desafío de esta etapa no radicó en la complejidad matemática de las funciones de Fourier, las cuales ya habían sido modeladas y validadas previamente, sino en la reestructuración del pensamiento algorítmico para dividir de manera eficiente el dominio del problema. Pasar de un enfoque donde un solo proceso ejecuta cada iteración de manera lineal, a uno donde múltiples hilos de ejecución operan simultáneamente sobre distintos fragmentos de la serie, demuestra de forma práctica las ventajas del cómputo de alto rendimiento.
+
+A nivel de desarrollo de software, la interacción directa con la biblioteca \texttt{pthreads} en lenguaje C exige una disciplina de programación mucho más rigurosa. Al operar en un entorno de memoria compartida dentro del mismo proceso padre, el riesgo de generar condiciones de carrera o inconsistencias en los resultados es constante si no se implementa una sincronización adecuada. El uso de funciones como \texttt{pthread\_create} y \texttt{pthread\_join} obligó a diseñar un flujo de control donde el hilo principal debe no solo despachar el trabajo, sino garantizar que todos los cálculos parciales de los armónicos hayan finalizado antes de ensamblar y presentar el resultado final. Ejecutar este código nativamente en Ubuntu Linux permitió, además, observar cómo el sistema operativo planifica y distribuye la carga a través de los múltiples núcleos físicos y lógicos del procesador, reduciendo de manera tangible los tiempos de ejecución en comparación con los scripts secuenciales previos.
+
+Dentro del contexto de la Ingeniería en Inteligencia Artificial, los aprendizajes obtenidos en esta implementación trascienden la simple evaluación de una función trigonométrica. El procesamiento de señales y el análisis en el dominio de la frecuencia —donde Fourier es la herramienta fundamental— son operaciones base en áreas como la visión por computadora y el procesamiento de lenguaje natural. Más aún, la capacidad de paralelizar cálculos es el pilar sobre el cual se construyen los algoritmos de inteligencia artificial modernos. Entrenar modelos de clasificación complejos, calcular gradientes descendentes por lotes, o ejecutar algoritmos de optimización bioinspirados (como la Optimización por Enjambre de Partículas o la Colonia de Hormigas) resulta computacionalmente inviable si se ejecutan de manera estrictamente secuencial. 
+
+En conclusión, este proyecto logró integrar exitosamente el análisis matemático avanzado con la arquitectura de sistemas operativos. Comparar los tiempos de ejecución y la eficiencia de esta fase con las anteriores valida empíricamente que dominar el cómputo concurrente no es una simple mejora técnica, sino un requisito indispensable. Comprender a bajo nivel cómo asignar recursos de hardware, gestionar la concurrencia y acelerar cálculos matemáticos masivos es una habilidad crítica que sienta las bases para el futuro desarrollo de sistemas inteligentes eficientes, robustos y escalables.
+
+\clearpage
+
+\section*{Conclusión Ugalde Téllez}
+
+La realización de esta práctica representó una oportunidad muy enriquecedora para comprender de manera práctica cómo se comportan los programas cuando dividimos una tarea compleja en muchas partes pequeñas que se ejecutan al mismo tiempo. Al trabajar con la serie de Fourier en el sistema operativo GNU/Linux utilizando el lenguaje C, el objetivo principal no solo era obtener los resultados matemáticos de la función, sino aprender a organizar el trabajo de la computadora mediante el uso de más de cien hilos de ejecución, observando las ventajas y retos que este enfoque conlleva.
+Al principio, adaptar el programa para que funcionara con una cantidad tan grande de hilos fue un desafío interesante. A diferencia de las etapas anteriores donde se trabajaba con procesos independientes, el uso de hilos requiere un cuidado mucho mayor en la forma en que se comparten la información y las variables dentro del programa. Cada hilo debía encargarse de calcular una parte específica de la serie de Fourier sin interferir con el trabajo que realizaban los demás. Lograr esta coordinación permitió notar con claridad cómo la computadora puede aprovechar mejor sus núcleos de procesamiento para terminar las operaciones en un tiempo mucho menor, demostrando la eficiencia que tiene esta técnica en comparación con realizar los cálculos de forma tradicional uno por uno.
+Por otro lado, la interacción con las herramientas de la plataforma GNU/Linux y la creación del archivo de automatización para la compilación ayudaron a reforzar hábitos de trabajo más ordenados en la programación. Fue indispensable revisar detenidamente el código para asegurar que no se generara ningún tipo de error ni advertencia al momento de compilar. Además, el proceso de guardar los resultados generados por los programas en archivos de datos para después trasladarlos a Excel y construir las gráficas fue una parte muy instructiva. Esto permitió comprobar visualmente que, a pesar de cambiar la forma de programar y utilizar más de cien hilos, la forma de las ondas y las gráficas obtenidas de la serie de Fourier eran idénticas a las de las fases previas, lo que confirmó que los cálculos se realizaron de manera correcta.
+En conclusión, esta experiencia me dejó un aprendizaje muy valioso sobre la importancia del trabajo concurrente y la distribución de tareas dentro de un software. Comprender cómo funcionan los hilos en C y ver reflejado su rendimiento en un problema concreto de matemáticas aplicadas me brinda una perspectiva mucho más amplia sobre cómo diseñar programas más rápidos y eficientes. Esta práctica me dio herramientas conceptuales y prácticas que sin duda me serán de gran utilidad para enfrentar proyectos más avanzados a lo largo de mi formación académica y profesional.
