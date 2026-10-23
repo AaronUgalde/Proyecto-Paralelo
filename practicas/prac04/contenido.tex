@@ -1,0 +1,374 @@
+
+% =====================================================================
+%  Práctica 4 — contenido
+%
+%  Sólo el cuerpo de la práctica: sin preámbulo, sin \begin{document},
+%  sin portada, sin índices y sin bibliografía (los pone el documento
+%  contenedor: practicas/prac04.tex).
+%
+%  IMPORTANTE: las prácticas son ENTREGAS INDEPENDIENTES del libro.
+%  Este archivo NUNCA se incluye en libro.tex ni en capitulos/capNN.
+%
+%  Convenciones:
+%   * Etiquetas: fig:prac04:..., tab:prac04:..., sec:prac04:...
+%   * Referencias: \cite{clave} usando las claves de bib/referencias.bib
+%
+%  ORIGEN DEL CONTENIDO (borrador de equipo en practicas/prac04/partes/main.tex):
+%   * Base de resumen, introducción, marco teórico y desarrollo: borrador
+%     de equipo (main.tex, Overleaf); aquí se reorganizó a la estructura
+%     del repo, se pasaron las citas a las claves de bib/referencias.bib
+%     y se amplió/corrigió (fechas y hechos verificados contra fuentes).
+%   * Said Carbot Cruz Trejo        — conclusión (main.tex), constancias
+%   * Magaly López Castro           — conclusión (main.tex), cuenta y constancias
+%   * Lino Ehecatl Romero Rosales   — conclusión REDACTADA POR CLAUDE (revisar)
+%   * Aarón Ugalde Téllez           — conclusión REDACTADA POR CLAUDE (revisar),
+%                                     constancias
+%
+%  EVIDENCIAS PENDIENTES (el documento compila sin ellas y deja un
+%  recuadro "PENDIENTE"; basta soltar el archivo en practicas/prac04/figuras/):
+%     prac04-aaron-cuenta.png        prac04-lino-cuenta.png
+%     prac04-lino-introduccion.png   prac04-lino-exploracion.png
+% =====================================================================
+
+% ---------------------------------------------------------------------
+%  Ayudas locales para las evidencias. Si el archivo de imagen todavía no
+%  existe, se dibuja un recuadro "PENDIENTE" (y se avisa en el log de
+%  compilación) en lugar de detener la compilación.
+% ---------------------------------------------------------------------
+% \SubEvidencia{archivo}{pie de subfigura}{descripción de lo pendiente}
+\newcommand{\SubEvidencia}[3]{%
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \IfFileExists{practicas/prac04/figuras/#1}{%
+            \includegraphics[width=\linewidth]{#1}%
+        }{%
+            \PackageWarning{prac04}{Falta la evidencia #1}%
+            \fbox{\parbox[c][4cm][c]{0.9\linewidth}{\centering
+                \textbf{PENDIENTE}\\[2pt] #3}}%
+        }
+        \caption{#2}
+    \end{subfigure}%
+}
+
+\chapter{\TituloPracCuatro}
+\label{prac:04}
+
+\section{Resumen}
+\label{sec:prac04:resumen}
+
+En esta práctica se realizó un acercamiento a las redes de computadoras y al simulador Cisco Packet Tracer. La introducción presenta el panorama general de las redes: su historia, desde ARPANET hasta la adopción de TCP/IP, la World Wide Web y las redes inalámbricas; las definiciones fundamentales, incluidos los modelos de capas OSI y TCP/IP; las principales topologías (bus, estrella, anillo, malla y árbol) y la clasificación de las redes por su alcance (PAN, LAN, MAN y WAN). El marco teórico resume la historia de Cisco Systems, desde su fundación en Stanford en 1984 hasta su papel actual en infraestructura, seguridad y colaboración, y describe las características de Packet Tracer: los espacios de trabajo lógico y físico, los modos de tiempo real y simulación, la variedad de dispositivos y servicios que emula y su uso educativo dentro de Cisco Networking Academy.
+
+En el desarrollo se documenta el trabajo del equipo en la plataforma NetAcad y en Skills For All: la creación de las cuentas y la finalización de los cursos «Introducción a Cisco Packet Tracer» y «Exploración de redes con Cisco Packet Tracer», con las capturas y constancias de cada integrante y los hallazgos al operar el simulador (direccionamiento IPv4, cableado, pruebas de conectividad con \texttt{ping} y análisis de PDU en modo simulación). Por último, cada integrante expone en una conclusión individual sus impresiones, análisis y opiniones sobre la práctica y su relación con el cómputo paralelo y la Inteligencia Artificial.
+
+\section{Introducción}
+\label{sec:prac04:introduccion}
+
+Las redes de computadoras son la infraestructura sobre la que descansa casi toda la computación actual: la comunicación entre personas, el acceso a servicios en la nube, el comercio electrónico y, de manera central para esta asignatura, el procesamiento distribuido y la transferencia masiva de datos entre equipos \cite{kurose:computer-networking:2017}. Un clúster de cómputo paralelo, un centro de datos que entrena modelos de Inteligencia Artificial o un sistema de supercómputo son, en el fondo, conjuntos de procesadores comunicados por una red, de modo que entender cómo se diseñan, se direccionan y se diagnostican las redes es una base indispensable para el resto del curso.
+
+El \textbf{objetivo general} de esta práctica es introducir al equipo en los conceptos de redes de computadoras y en el uso del simulador Cisco Packet Tracer. Como \textbf{objetivos específicos}, se busca (1) revisar el panorama general de las redes: historia, definiciones, topologías y tipos; (2) investigar la historia de la empresa Cisco y las características principales de Packet Tracer; y (3) completar los cursos \emph{Getting Started with Cisco Packet Tracer} y \emph{Exploring Networking with Cisco Packet Tracer} de Cisco Networking Academy, documentando los hallazgos con evidencias de cada integrante.
+
+\subsection{Historia}
+\label{sec:prac04:historia-redes}
+
+La historia de las redes está ligada a la necesidad de compartir recursos costosos y de comunicar equipos distantes. En los años sesenta, los trabajos de Leonard Kleinrock sobre teoría de colas, de Paul Baran en la corporación RAND y de Donald Davies en el Reino Unido sentaron las bases de la \emph{conmutación de paquetes}, una técnica que divide los mensajes en fragmentos independientes que pueden seguir rutas distintas, en lugar de reservar un circuito dedicado como lo hacía la telefonía \cite{kurose:computer-networking:2017}. Sobre esa idea, a finales de la década el Departamento de Defensa de los Estados Unidos financió ARPANET, la primera red de conmutación de paquetes de área amplia con control distribuido, que en 1969 enlazó los primeros nodos en universidades de California y Utah y sentó las bases de lo que hoy es Internet \cite{tanenbaum:computer-networks:2021, stallings:data-computer-comm:2014}.
+
+Durante los años setenta y ochenta surgieron redes de distinta naturaleza que obligaron a resolver el problema de la interconexión. En 1973, Robert Metcalfe y sus colegas en Xerox PARC desarrollaron Ethernet, la tecnología que con el tiempo se convertiría en el estándar de las redes locales \cite{kurose:computer-networking:2017}. En 1974, Vinton Cerf y Robert Kahn publicaron el diseño de un protocolo para interconectar redes heterogéneas, origen de la familia TCP/IP \cite{cerf:tcp:1974}. El 1.º de enero de 1983 ARPANET migró oficialmente a TCP/IP, lo que unificó redes aisladas y marcó el nacimiento práctico de Internet \cite{tanenbaum:computer-networks:2021}.
+
+En la década de 1990 la red dejó de ser un recurso de universidades y laboratorios: Tim Berners-Lee desarrolló la World Wide Web en el CERN, con sus primeros servidores y navegadores entre 1989 y 1991, y los navegadores gráficos la volvieron accesible al público general \cite{forouzan:data-comm-networking:2013, kurose:computer-networking:2017}. Poco después, el estándar IEEE 802.11 (Wi-Fi) extendió las redes locales al medio inalámbrico \cite{tanenbaum:computer-networks:2021}. La Tabla~\ref{tab:prac04:cronologia} resume estos hitos.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{2.6cm}|p{12.2cm}|}
+        \hline
+        \textbf{Año} & \textbf{Hito histórico} \\ \hline
+        1969 & Entra en operación ARPANET con sus primeros nodos universitarios \cite{tanenbaum:computer-networks:2021}. \\ \hline
+        1973 & Se desarrolla Ethernet en Xerox PARC \cite{kurose:computer-networking:2017}. \\ \hline
+        1974 & Cerf y Kahn publican el diseño inicial de TCP \cite{cerf:tcp:1974}. \\ \hline
+        1983 & ARPANET migra oficialmente a los protocolos TCP/IP \cite{tanenbaum:computer-networks:2021}. \\ \hline
+        1989--1991 & Berners-Lee crea la World Wide Web en el CERN \cite{forouzan:data-comm-networking:2013}. \\ \hline
+        1997--1999 & Se publica el estándar IEEE 802.11 y se difunden las redes Wi-Fi \cite{tanenbaum:computer-networks:2021}. \\ \hline
+    \end{tabular}
+    \caption{Cronología resumida de la evolución de las redes de computadoras.}
+    \label{tab:prac04:cronologia}
+\end{table}
+
+\subsection{Definiciones}
+\label{sec:prac04:definiciones}
+
+De acuerdo con Tanenbaum, una red de computadoras es un conjunto de computadoras autónomas interconectadas mediante una sola tecnología, de modo que puedan intercambiar información \cite{tanenbaum:computer-networks:2021}. Cada dispositivo capaz de enviar o recibir datos en la red (computadora, servidor, impresora, teléfono, conmutador o enrutador) se denomina \emph{nodo} o \emph{host}, y el medio que los une, ya sea cobre, fibra óptica o radio, es el \emph{enlace} \cite{stallings:data-computer-comm:2014}. Dos magnitudes describen el desempeño de un enlace: el \emph{ancho de banda}, que es la cantidad de datos que puede transportar por unidad de tiempo, y la \emph{latencia}, que es el tiempo que tarda un dato en llegar de un extremo a otro \cite{kurose:computer-networking:2017}.
+
+El funcionamiento ordenado de la red se rige por \emph{protocolos}, conjuntos de reglas que establecen el formato, el orden y la acción que debe seguirse al enviar y recibir mensajes \cite{kurose:computer-networking:2017}. Para organizar la complejidad, los protocolos se agrupan en \emph{capas}: el modelo de referencia OSI define siete (física, enlace de datos, red, transporte, sesión, presentación y aplicación), mientras que la arquitectura TCP/IP, que es la que usa Internet, suele estudiarse en cinco (física, enlace, red, transporte y aplicación) \cite{forouzan:data-comm-networking:2013, kurose:computer-networking:2017}. En cada capa los datos se encapsulan en una unidad con nombre propio, llamada unidad de datos de protocolo (PDU, \emph{Protocol Data Unit}); la Tabla~\ref{tab:prac04:capas} muestra esta correspondencia, que resulta de especial interés porque Packet Tracer permite inspeccionar las PDU capa por capa en su modo de simulación.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{3.2cm}|p{2.6cm}|p{8.8cm}|}
+        \hline
+        \textbf{Capa (modelo TCP/IP de cinco capas)} & \textbf{PDU} & \textbf{Ejemplos de protocolos y direccionamiento} \\ \hline
+        Aplicación & Mensaje & HTTP, DNS, DHCP, SMTP \cite{kurose:computer-networking:2017}. \\ \hline
+        Transporte & Segmento & TCP, UDP; números de puerto \cite{kurose:computer-networking:2017}. \\ \hline
+        Red & Paquete & IP, ICMP; direcciones IP \cite{kurose:computer-networking:2017}. \\ \hline
+        Enlace & Trama & Ethernet, Wi-Fi; direcciones MAC \cite{kurose:computer-networking:2017}. \\ \hline
+        Física & Bits & Cobre, fibra óptica, radio \cite{kurose:computer-networking:2017}. \\ \hline
+    \end{tabular}
+    \caption{Capas de la arquitectura TCP/IP, su PDU y ejemplos.}
+    \label{tab:prac04:capas}
+\end{table}
+
+Los dispositivos de interconexión operan en capas distintas: el \emph{conmutador} (\emph{switch}) reenvía tramas dentro de una red local con base en las direcciones MAC, mientras que el \emph{enrutador} (\emph{router}) reenvía paquetes entre redes distintas con base en las direcciones IP y su tabla de enrutamiento \cite{forouzan:data-comm-networking:2013}. Estas funciones son las que se practican en Packet Tracer al armar y configurar topologías.
+
+\subsection{Topologías}
+\label{sec:prac04:topologias}
+
+La topología describe la disposición de los nodos y los enlaces de una red. Se distingue la topología \emph{física}, que es el trazado real de los cables y dispositivos, de la topología \emph{lógica}, que es la manera en que los datos circulan entre los nodos \cite{forouzan:data-comm-networking:2013}. La elección de la topología influye en el costo de instalación, la escalabilidad y la tolerancia a fallos. La Tabla~\ref{tab:prac04:topologias} compara las principales.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{2.2cm}|p{6.0cm}|p{6.1cm}|}
+        \hline
+        \textbf{Topología} & \textbf{Descripción} & \textbf{Ventajas y desventajas} \\ \hline
+        \textbf{Bus} & Todos los nodos comparten un único cable troncal \cite{tanenbaum:computer-networks:2021}. & Económica y sencilla de instalar; una falla del cable central deja sin servicio a toda la red. \\ \hline
+        \textbf{Estrella} & Cada nodo se conecta a un dispositivo central (\emph{switch}) \cite{stallings:data-computer-comm:2014}. & Fácil de administrar y de ampliar, y la falla de un nodo no afecta a los demás; depende por completo del dispositivo central. \\ \hline
+        \textbf{Anillo} & Cada nodo se conecta exactamente con otros dos, formando un circuito cerrado \cite{forouzan:data-comm-networking:2013}. & Reparto ordenado del acceso al medio; la ruptura de un enlace puede interrumpir el anillo si no hay anillo doble. \\ \hline
+        \textbf{Malla} & Cada nodo se conecta directamente con varios o con todos los demás \cite{forouzan:data-comm-networking:2013}. & Alta redundancia y confiabilidad; costo y complejidad de cableado muy altos. \\ \hline
+        \textbf{Árbol} & Organización jerárquica de estrellas enlazadas a un nodo raíz \cite{forouzan:data-comm-networking:2013}. & Escala bien en redes grandes y facilita la administración por niveles; un fallo en un nodo superior aísla a todo su subárbol. \\ \hline
+    \end{tabular}
+    \caption{Principales topologías de red.}
+    \label{tab:prac04:topologias}
+\end{table}
+
+En la práctica es común encontrar topologías \emph{híbridas}, que combinan varias de las anteriores; por ejemplo, redes de campus formadas por estrellas (cada piso o edificio) unidas entre sí por un enlace troncal. La topología en estrella, basada en un \emph{switch}, es la que predomina en las redes locales actuales y la que se construye con mayor frecuencia en los ejercicios de Packet Tracer \cite{tanenbaum:computer-networks:2021}.
+
+\subsection{Tipos de redes}
+\label{sec:prac04:tipos}
+
+La clasificación más habitual de las redes se basa en su alcance geográfico, que determina el hardware, las tecnologías de enlace y los protocolos de enrutamiento que conviene emplear \cite{kurose:computer-networking:2017}. La Tabla~\ref{tab:prac04:tipos} resume las categorías principales.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{1.9cm}|p{12.9cm}|}
+        \hline
+        \textbf{Tipo} & \textbf{Definición y cobertura} \\ \hline
+        \textbf{PAN} & (\emph{Personal Area Network}) Interconecta dispositivos personales en un rango de pocos metros, por ejemplo mediante Bluetooth \cite{forouzan:data-comm-networking:2013}. \\ \hline
+        \textbf{LAN} & (\emph{Local Area Network}) Cubre un área limitada, como una casa, una oficina o un edificio; usa principalmente Ethernet y Wi-Fi \cite{tanenbaum:computer-networks:2021}. \\ \hline
+        \textbf{MAN} & (\emph{Metropolitan Area Network}) Abarca una ciudad o un campus extenso y conecta varias redes LAN \cite{stallings:data-computer-comm:2014}. \\ \hline
+        \textbf{WAN} & (\emph{Wide Area Network}) Cubre grandes extensiones geográficas, como países o continentes; Internet, una interconexión mundial de redes, es el mayor ejemplo \cite{kurose:computer-networking:2017}. \\ \hline
+    \end{tabular}
+    \caption{Clasificación de las redes según su alcance.}
+    \label{tab:prac04:tipos}
+\end{table}
+
+Además del alcance, las redes se clasifican por el medio de transmisión en \emph{alámbricas} (cable de cobre o fibra óptica) e \emph{inalámbricas} (Wi-Fi, Bluetooth, redes celulares), y por su arquitectura de comunicación en redes \emph{cliente-servidor}, donde unos equipos ofrecen servicios (web, DNS, DHCP) y otros los consumen, y redes \emph{punto a punto} (\emph{peer-to-peer}), donde todos los nodos pueden actuar como cliente y como servidor \cite{stallings:data-computer-comm:2014}. Estas distinciones se reflejan directamente en Packet Tracer, que ofrece dispositivos finales, servidores, \emph{switches}, \emph{routers} y puntos de acceso inalámbricos para reproducir cualquiera de estos escenarios.
+
+\section{Marco teórico}
+\label{sec:prac04:marco-teorico}
+
+Esta sección reúne la investigación sobre la empresa Cisco Systems, líder en infraestructura de red y organizadora del programa educativo Cisco Networking Academy, y sobre Cisco Packet Tracer, el simulador de redes utilizado en la práctica.
+
+\subsection{Historia de la empresa Cisco}
+\label{sec:prac04:historia-cisco}
+
+Cisco Systems se fundó en diciembre de 1984 por Leonard Bosack, quien administraba las computadoras del departamento de ciencias de la computación de la Universidad de Stanford, y su entonces esposa Sandy Lerner, responsable de los equipos de la Escuela de Negocios de la misma universidad \cite{wikipedia:cisco-systems, ebsco:cisco-systems}. La motivación inicial fue práctica: las redes de los distintos departamentos del campus usaban protocolos incompatibles, y ambos diseñaron y armaron en su casa un enrutador capaz de manejar varios protocolos para que los sistemas pudieran comunicarse \cite{wikipedia:leonard-bosack}. Ese desarrollo se apoyó en el trabajo previo de la comunidad de Stanford, en particular en el enrutador «Blue Box» y en el software multiprotocolo escrito por el ingeniero William Yeager; en 1986 Bosack y su colaborador Kirk Lougheed dejaron la universidad, y en 1987 Stanford licenció a Cisco el software y dos tarjetas del enrutador \cite{wikipedia:cisco-systems}. El nombre de la empresa proviene de \emph{San Francisco}, y su primer logotipo estilizaba el puente Golden Gate \cite{wikipedia:leonard-bosack}.
+
+Para crecer, la compañía recibió capital de riesgo de Sequoia Capital, a cargo de Donald Valentine, que incorporó un equipo directivo profesional \cite{ebsco:cisco-systems}; el primer director general fue Bill Graves (1987--1988) y en 1988 asumió John Morgridge \cite{wikipedia:cisco-systems}. El 16 de febrero de 1990 Cisco salió a la bolsa en NASDAQ con una capitalización de mercado de 224 millones de dólares y, meses después, en agosto de ese año, Lerner fue despedida y Bosack renunció \cite{wikipedia:cisco-systems, ebsco:cisco-systems}. A lo largo de la década de 1990 la empresa creció al ritmo de la expansión de Internet y de TCP/IP: superó los mil millones de dólares en ventas hacia 1994 \cite{ebsco:cisco-systems} y, mediante una estrategia sostenida de adquisiciones, amplió su oferta del enrutamiento hacia la conmutación (con la compra de Crescendo Communications en 1993, origen de la línea de \emph{switches} Catalyst), las redes inalámbricas, la seguridad y la colaboración \cite{wikipedia:cisco-systems}. En el año 2000 llegó a ser la empresa con mayor valor de mercado del mundo, por encima de los 500 mil millones de dólares \cite{wikipedia:cisco-systems}.
+
+En las décadas siguientes, Cisco se orientó hacia los servicios en la nube y el software. Entre sus adquisiciones destacan Webex (2007), para videoconferencias y colaboración; Meraki (2012), para redes administradas desde la nube; BroadSoft (2017); ThousandEyes (2020), para el monitoreo del desempeño de redes; y Splunk (2024), una compra de aproximadamente 28 mil millones de dólares, la mayor de su historia, orientada a análisis de datos y seguridad \cite{ebsco:cisco-systems}. La Tabla~\ref{tab:prac04:cisco} presenta una línea de tiempo.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{2.6cm}|p{12.2cm}|}
+        \hline
+        \textbf{Año} & \textbf{Evento corporativo} \\ \hline
+        1984 & Bosack y Lerner fundan Cisco Systems \cite{wikipedia:cisco-systems}. \\ \hline
+        1987 & Stanford licencia a Cisco el software y las tarjetas del enrutador \cite{wikipedia:cisco-systems}. \\ \hline
+        1990 & Cisco sale a la bolsa en NASDAQ (16 de febrero) \cite{wikipedia:cisco-systems}. \\ \hline
+        1993 & Adquisición de Crescendo Communications, origen de los \emph{switches} Catalyst \cite{wikipedia:cisco-systems}. \\ \hline
+        2007 & Adquisición de Webex \cite{wikipedia:cisco-systems}. \\ \hline
+        2012 & Adquisición de Meraki, redes administradas desde la nube \cite{ebsco:cisco-systems}. \\ \hline
+        2020--2024 & Adquisiciones de ThousandEyes (2020) y Splunk (2024) \cite{ebsco:cisco-systems}. \\ \hline
+    \end{tabular}
+    \caption{Línea de tiempo de Cisco Systems.}
+    \label{tab:prac04:cisco}
+\end{table}
+
+Junto con su actividad comercial, Cisco impulsa desde mediados de los años noventa el programa Cisco Networking Academy (NetAcad), que ofrece cursos de redes, ciberseguridad y programación a estudiantes y docentes de todo el mundo \cite{cisco:frezzo-blog}. Es precisamente en NetAcad y en su plataforma Skills For All donde se alojan los cursos que se realizaron en esta práctica.
+
+\subsection{Características de Cisco Packet Tracer}
+\label{sec:prac04:packet-tracer}
+
+Cisco Packet Tracer es un entorno de aprendizaje basado en simulación, de mediana fidelidad, que permite a quienes se inician en las redes diseñar, configurar y diagnosticar redes de un nivel de complejidad equivalente al de la certificación CCNA \cite{ciscopt:ayuda-introduccion}. Integra simulación, visualización, colaboración y evaluación, y se creó para atender la \emph{brecha digital} en la enseñanza de redes, en la que muchos estudiantes y docentes no tienen acceso a equipo físico, ancho de banda o modos interactivos de aprendizaje \cite{ciscopt:ayuda-introduccion, cisco:frezzo-blog}. Como toda simulación, se basa en un modelo simplificado de los dispositivos y protocolos reales \cite{ciscopt:ayuda-introduccion}. El programa es multiplataforma, y se obtiene sin costo para instructores, estudiantes y exalumnos de Cisco Networking Academy \cite{netacad:pt82-faq, wikipedia:packet-tracer}.
+
+La interfaz se organiza en dos espacios de trabajo. En el \emph{espacio lógico} se construye la topología: se arrastran dispositivos, se conectan con distintos tipos de cable y se configuran; en el \emph{espacio físico} esa topología se representa con una dimensión material (ciudades, edificios, \emph{racks} y distancias) \cite{ciscopt:ayuda-introduccion}. A la vez, el programa trabaja en dos modos: el \emph{modo de tiempo real}, en el que la red se comporta como una red viva, con actualización de protocolos y una interfaz de línea de comandos de Cisco IOS de mediana fidelidad en \emph{routers} y \emph{switches}, y el \emph{modo de simulación}, que permite animar el recorrido de los paquetes, consultar una lista global de eventos (a modo de analizador de paquetes) y examinar las PDU según el modelo OSI \cite{ciscopt:ayuda-introduccion}.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{3.6cm}|p{11.2cm}|}
+        \hline
+        \textbf{Característica} & \textbf{Descripción} \\ \hline
+        \textbf{Espacios lógico y físico} & El lógico sirve para construir y configurar la topología; el físico le da una dimensión material (ciudades, edificios, \emph{racks}) \cite{ciscopt:ayuda-introduccion}. \\ \hline
+        \textbf{Tiempo real y simulación} & Tiempo real: protocolos activos y CLI de IOS. Simulación: animación de paquetes, lista global de eventos y vistas del modelo OSI y de PDU detalladas \cite{ciscopt:ayuda-introduccion}. \\ \hline
+        \textbf{Dispositivos y servicios} & \emph{Routers}, \emph{switches}, dispositivos finales y servidores con configuración por menús de servicios como DHCP, DNS, HTTP, TFTP, Syslog, AAA y NTP \cite{ciscopt:ayuda-introduccion}. \\ \hline
+        \textbf{Colaboración y evaluación} & Modo multiusuario desde la versión 5.0, y creación de actividades autoevaluables con el asistente de actividades y el modo desafío \cite{ciscopt:ayuda-introduccion, wikipedia:packet-tracer}. \\ \hline
+        \textbf{Extensibilidad} & Anotaciones de texto y gráficas, y aplicaciones externas que se comunican con el simulador \cite{ciscopt:ayuda-introduccion}. \\ \hline
+    \end{tabular}
+    \caption{Características principales de Cisco Packet Tracer.}
+    \label{tab:prac04:caracteristicas-pt}
+\end{table}
+
+Las versiones recientes ampliaron el alcance del simulador más allá del enrutamiento y la conmutación: incorporan escenarios de Internet de las Cosas con sensores, actuadores y microcontroladores programables, así como un controlador de red que puede consultarse con herramientas externas como Python o Postman, en la línea de las redes definidas por software \cite{wikipedia:packet-tracer}. En el contexto de esta asignatura, su principal valor es que permite experimentar con direccionamiento, conectividad y recorrido de paquetes sin necesidad de equipo físico, y observar con precisión cómo cada capa encapsula y procesa los datos que viajan entre nodos.
+
+\section{Desarrollo}
+\label{sec:prac04:desarrollo}
+
+Para llevar a cabo la práctica, cada integrante creó su cuenta en Cisco Networking Academy y completó, en la plataforma Skills For All, los dos cursos que se piden: \emph{Getting Started with Cisco Packet Tracer} (en español, «Introducción a Cisco Packet Tracer») y \emph{Exploring Networking with Cisco Packet Tracer} (``Exploración de redes con Cisco Packet Tracer'') \cite{skillsforall:getting-started-pt:2026, skillsforall:exploring-networking-pt:2026}. Las subsecciones siguientes describen cada paso y los hallazgos del equipo, y al final se presentan las evidencias de todos los integrantes.
+
+\subsection{Creación de la cuenta en NetAcad}
+\label{sec:prac04:cuenta}
+
+El primer paso fue registrarse en el portal de aprendizaje de Cisco Networking Academy (\url{https://www.netacad.com/portal/learning}) \cite{netacad:portal:2026}. La cuenta centraliza el progreso del estudiante, da acceso a los cursos de Skills For All y es la que emite las constancias de finalización; por ello el aviso del portal recomienda revisar que el nombre del perfil coincida con el que se desea ver en el certificado antes de terminar un curso. La Figura~\ref{fig:prac04:cuentas} muestra las sesiones de los integrantes en el portal.
+
+\begin{figure}[H]
+    \centering
+    \SubEvidencia{prac04-magaly-cuenta.png}{Magaly López Castro.}{Captura del perfil de NetAcad}\hfill
+    \SubEvidencia{prac04-said-cuenta.png}{Said Carbot Cruz Trejo.}{Captura del perfil de NetAcad}\\[1.2em]
+    \SubEvidencia{prac04-lino-cuenta.png}{Lino Ehecatl Romero Rosales.}{Captura del perfil de NetAcad\\ (\texttt{prac04-lino-cuenta.png})}\hfill
+    \SubEvidencia{prac04-aaron-cuenta.png}{Aarón Ugalde Téllez.}{Captura del perfil de NetAcad\\ (\texttt{prac04-aaron-cuenta.png})}
+    \caption{Cuentas de los integrantes del equipo en Cisco Networking Academy (NetAcad).}
+    \label{fig:prac04:cuentas}
+\end{figure}
+
+\subsection{Curso «Introducción a Cisco Packet Tracer»}
+\label{sec:prac04:curso-intro}
+
+Este curso introductorio (aproximadamente dos horas) guía el primer contacto con el simulador: su entorno, su descarga e instalación y el reconocimiento de la interfaz \cite{skillsforall:getting-started-pt:2026}. Los principales hallazgos al trabajar con la herramienta fueron los siguientes:
+
+\begin{itemize}
+    \item \textbf{Gestión del espacio de trabajo.} Se distinguió el espacio lógico, donde se diseña la topología, del físico, que representa la disposición en \emph{racks}, edificios y ciudades.
+    \item \textbf{Simulación frente a tiempo real.} El modo de simulación permite avanzar paso a paso por el recorrido de las PDU, lo que resulta muy útil para entender qué ocurre en cada salto y para localizar fallas de conexión.
+    \item \textbf{Catálogo de dispositivos y medios.} Se exploró la biblioteca de dispositivos finales, \emph{routers}, \emph{switches} y medios de transmisión (cobre directo, cobre cruzado, fibra óptica), cada uno con su uso apropiado.
+\end{itemize}
+
+\subsection{Curso «Exploración de redes con Cisco Packet Tracer»}
+\label{sec:prac04:curso-exploracion}
+
+El segundo curso profundiza en la construcción, el direccionamiento y la prueba de redes básicas \cite{skillsforall:exploring-networking-pt:2026}. Sus hallazgos más relevantes fueron:
+
+\begin{itemize}
+    \item \textbf{Configuración de dispositivos finales.} Se asignaron direcciones IPv4, máscaras de subred y puertas de enlace predeterminadas (\emph{default gateway}) a las computadoras, y se comprobó que un error en cualquiera de estos datos aísla al equipo del resto de la red.
+    \item \textbf{Pruebas de conectividad.} Con la línea de comandos de las computadoras virtuales se utilizó \texttt{ping} y se observaron los paquetes ICMP generados, lo que confirma el alcance entre nodos.
+    \item \textbf{Topologías básicas.} Se construyeron redes en estrella y se entendió el papel del \emph{switch} como dispositivo de capa 2 que reenvía las tramas dentro de la red local.
+\end{itemize}
+
+\subsection{Hallazgos generales con Packet Tracer}
+\label{sec:prac04:hallazgos}
+
+Al resolver los laboratorios se observaron otras funciones relevantes del simulador:
+
+\begin{itemize}
+    \item \textbf{Asignación de direcciones.} Se contrastó el direccionamiento estático con el dinámico mediante DHCP, y se vio cómo este último reduce el trabajo de configuración en redes con muchos equipos.
+    \item \textbf{Cableado.} Se aplicó el criterio para elegir entre cable directo (\emph{straight-through}) y cruzado (\emph{crossover}) según los dispositivos que se conectan, y se revisaron las conexiones inalámbricas y el cableado estructurado.
+    \item \textbf{Diagnóstico de conectividad.} Se utilizaron intensivamente \texttt{ping} y \texttt{traceroute} desde el \emph{Command Prompt} de las computadoras simuladas, incluida la prueba de acceso al servidor web interno (\texttt{cisco.srv}).
+    \item \textbf{Modo de simulación.} Se inspeccionaron paquetes ICMP, TCP y HTTP: se vio cómo los \emph{switches} reenvían tramas con base en las direcciones MAC y cómo los \emph{routers} segmentan las redes con ayuda de tablas de enrutamiento IP, de acuerdo con las capas de la Tabla~\ref{tab:prac04:capas}.
+\end{itemize}
+
+\subsection{Evidencias de finalización de los cursos}
+\label{sec:prac04:evidencias}
+
+A continuación se presentan las constancias de finalización de los dos cursos de cada integrante del equipo, tal como lo solicita la práctica.
+
+\begin{figure}[H]
+    \centering
+    \SubEvidencia{prac04-said-introduccion.png}{Introducción a Cisco Packet Tracer.}{}\hfill
+    \SubEvidencia{prac04-said-exploracion.png}{Exploración de redes con Cisco Packet Tracer.}{}
+    \caption{Constancias de finalización de Said Carbot Cruz Trejo.}
+    \label{fig:prac04:cert:said}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \SubEvidencia{prac04-magaly-introduccion.png}{Introducción a Cisco Packet Tracer.}{}\hfill
+    \SubEvidencia{prac04-magaly-exploracion.png}{Exploración de redes con Cisco Packet Tracer.}{}
+    \caption{Constancias de finalización de Magaly López Castro.}
+    \label{fig:prac04:cert:magaly}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \SubEvidencia{prac04-lino-introduccion.png}{Introducción a Cisco Packet Tracer.}{Constancia del curso\\ (\texttt{prac04-lino-introduccion.png})}\hfill
+    \SubEvidencia{prac04-lino-exploracion.png}{Exploración de redes con Cisco Packet Tracer.}{Constancia del curso\\ (\texttt{prac04-lino-exploracion.png})}
+    \caption{Constancias de finalización de Lino Ehecatl Romero Rosales.}
+    \label{fig:prac04:cert:lino}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \SubEvidencia{prac04-aaron-introduccion.png}{Getting Started with Cisco Packet Tracer.}{}\hfill
+    \SubEvidencia{prac04-aaron-exploracion.png}{Exploración de redes con Cisco Packet Tracer.}{}
+    \caption{Constancias de finalización de Aarón Ugalde Téllez.}
+    \label{fig:prac04:cert:aaron}
+\end{figure}
+
+\section{Conclusiones}
+\label{sec:prac04:conclusiones}
+
+A continuación cada integrante del equipo expone sus impresiones, análisis, opiniones y hallazgos al realizar la práctica.
+
+\clearpage
+\subsection{Conclusión — Said Carbot Cruz Trejo}
+\label{sec:prac04:concl:said}
+
+La realización de esta práctica, complementada con la investigación teórica y la finalización de los cursos introductorios de Cisco Skills for All, permitió consolidar los conocimientos fundamentales sobre el diseño, la configuración y el funcionamiento de las redes de computadoras. El trabajo integró conceptos relacionados con la evolución histórica de las telecomunicaciones, los modelos de referencia, los protocolos de comunicación, los dispositivos de interconexión y los medios de transmisión, con actividades prácticas orientadas a la construcción y el análisis de topologías de red mediante Cisco Packet Tracer. Esta combinación resultó esencial para comprender cómo los principios teóricos adquieren una aplicación concreta dentro de los sistemas informáticos actuales.
+
+Uno de los aprendizajes más relevantes consistió en comprender la función de los modelos OSI y TCP/IP como referencias para estudiar la comunicación entre dispositivos. La inspección de las unidades de datos de protocolo (PDU) en el modo de simulación permitió identificar la información que interviene en cada etapa del intercambio de datos, desde las direcciones MAC y las direcciones IP hasta los puertos de transporte y las cabeceras de los protocolos de aplicación. Asimismo, la diferenciación entre switches y routers permitió reconocer la importancia de las capas de enlace de datos y de red en la entrega de información dentro de una red local y entre redes distintas. De esta manera, el análisis de paquetes HTTP y la observación de su recorrido contribuyeron a comprender con mayor claridad los mecanismos que hacen posible la comunicación a través de Internet.
+
+Las actividades de configuración también permitieron reconocer la importancia del direccionamiento y de los servicios de red para garantizar una conectividad adecuada. La comparación entre la asignación estática de direcciones IP y el protocolo DHCP mostró distintas formas de administrar los recursos de una red, mientras que las pruebas mediante comandos como PING y Traceroute proporcionaron herramientas básicas para identificar fallos de conectividad y examinar las rutas de comunicación.
+
+Por otra parte, Cisco Packet Tracer demostró el valor de la simulación como recurso educativo y herramienta de experimentación. La posibilidad de construir escenarios lógicos y físicos, incorporar dispositivos, configurar interfaces y observar el intercambio de información facilitó la comprensión de procesos que, mediante una explicación exclusivamente teórica, podrían resultar abstractos. Además, la representación de racks, conexiones estructuradas, módulos inalámbricos y componentes del Internet de las Cosas permitió ampliar la perspectiva sobre los elementos físicos que intervienen en una infraestructura tecnológica. Estas experiencias destacaron la necesidad de considerar tanto la configuración lógica como las condiciones físicas de instalación al diseñar sistemas de comunicación confiables.
+
+Finalmente, la investigación histórica permitió reconocer la continuidad de los principios que sustentan las redes contemporáneas. Los avances relacionados con ARPANET y el desarrollo de la familia de protocolos TCP/IP establecieron fundamentos que todavía resultan indispensables para la comunicación digital. Sobre estas bases, la evolución de los servicios web, las redes inalámbricas y los dispositivos conectados ha ampliado las posibilidades de intercambio de información, al mismo tiempo que ha incrementado la importancia de la seguridad y del diagnóstico de fallos. En consecuencia, esta práctica no solo fortaleció las habilidades técnicas para configurar y analizar redes, sino que también proporcionó una perspectiva integral sobre su papel dentro de la infraestructura tecnológica moderna. Los conocimientos obtenidos constituyen un punto de partida para abordar problemas de mayor complejidad en redes, ciberseguridad, sistemas distribuidos e Inteligencia Artificial, mediante un enfoque de ingeniería que considere la conectividad, la eficiencia y la confiabilidad como elementos esenciales para el desarrollo de soluciones informáticas.
+
+\clearpage
+\subsection{Conclusión — Magaly López Castro}
+\label{sec:prac04:concl:magaly}
+
+La realización de esta primera práctica orientada al uso de Cisco Packet Tracer representó un acercamiento fundamental hacia la comprensión técnica de las telecomunicaciones y la arquitectura de redes. Durante la elaboración de los cursos en la plataforma de \textit{Skills For All}, mi mayor hallazgo fue descubrir el nivel de profundidad analítica que ofrece el simulador, particularmente al utilizar el modo de simulación. Poder rastrear visualmente el flujo de los paquetes de datos (PDU) a través de los distintos nodos de la red, observar cómo se encapsula la información en cada capa del modelo OSI y analizar los encabezados de los protocolos de enrutamiento y conmutación, materializa conceptos que en la teoría suelen ser muy abstractos.
+
+Desde una perspectiva analítica, me resultó sumamente interesante la forma en que el software permite gestionar tanto la capa física como la lógica. Configurar las interfaces de red, asignar direcciones IPv4 de manera estructurada y validar la conectividad mediante comandos de diagnóstico como \texttt{ping} desde la terminal virtual, me permitió entender la sensibilidad de la configuración de red; un solo error en la máscara de subred o en el \textit{Default Gateway} es suficiente para aislar por completo a un host del resto del sistema.
+
+Considero que dominar estas herramientas de simulación trasciende la simple administración de Tecnologías de la Información. En el campo de la Inteligencia Artificial y el desarrollo de software de alto rendimiento, los algoritmos y las aplicaciones no se ejecutan en el vacío; dependen de infraestructuras interconectadas, de procesamiento distribuido y de transferencias masivas de datos hacia servidores o bases de datos en la nube. Por lo tanto, comprender cómo viaja la información, dónde pueden existir cuellos de botella en el ancho de banda y cómo se estructuran las topologías para lograr una comunicación eficiente y tolerante a fallos, me dota de una perspectiva ingenieril mucho más completa.
+
+En conclusión, los recursos proporcionados por Cisco Networking Academy me parecieron excelentes puntos de partida. Ofrecen un entorno de aprendizaje intuitivo pero lo suficientemente riguroso para desafiar nuestra capacidad de resolución de problemas lógicos. Esta práctica no solo cumplió con el objetivo de introducirnos a Packet Tracer, sino que sentó unas bases sólidas de \textit{networking} que resultarán indispensables para los proyectos prácticos de configuración de redes que enfrentaremos a lo largo de este curso.
+
+% Conclusión redactada por Claude (2026-10-13) a petición del usuario; revisar.
+% Lino no entregó conclusión ni evidencias: debe leerla, ajustarla a su experiencia real y confirmar que completó los cursos.
+\clearpage
+\subsection{Conclusión — Lino Ehecatl Romero Rosales}
+\label{sec:prac04:concl:lino}
+Durante la realización de esta práctica, el equipo pudo aprender una gran variedad de cosas que, de otro modo, se habrían quedado únicamente en la teoría de los apuntes o en las explicaciones de clase. Al empezar a utilizar la plataforma de Cisco Packet Tracer, nos dimos cuenta de cómo se simula el comportamiento y la interacción física de la conexión entre computadoras, lo cual resulta fundamental para comprender el flujo de la información y cómo se optimiza el procesamiento de los datos dentro de una red de área local. Ver cómo interactúan los equipos en un entorno virtual nos brindó una perspectiva completamente diferente sobre la infraestructura tecnológica que sostiene cualquier sistema moderno.
+
+Un aspecto muy importante al avanzar con el primer curso introductorio fue darnos cuenta de la variedad de direcciones IP que existen en el ámbito de las redes. Aprendimos a distinguir cuáles son las correctas y en qué casos específicos se debe utilizar cada una para evitar fallas de comunicación. Además, algo que nos llamó mucho la atención y facilitó el aprendizaje fue notar cómo se pueden realizar las conexiones y las prácticas directamente desde una laptop o equipo personal sin necesidad de contar con un laboratorio físico lleno de computadoras. Esto nos permitió experimentar con libertad, y asi lograr equivocarnos y entender que la simulación por software ofrece un espacio sumamente versátil para aprender probando y corrigiendo sobre la marcha.
+
+Ya para el segundo curso, el enfoque de la práctica fue una comprensión sobre cómo se conectan y relacionan los distintos dispositivos de red. En esta etapa logramos dominar con mayor comodidad la manipulación general del entorno de Cisco, lo que nos facilitó enlazar múltiples computadoras y comprobar el envío de mensajes y paquetes de datos utilizando directamente sus respectivas direcciones IP. Fue muy interesante observar cómo, al configurar cada ruta, cada interfaz y cada parámetro de red, los mensajes realmente encontraban su destino de manera lógica y ordenada. Este proceso nos dejó claro que una red no se trata simplemente de unir cables al azar, sino de seguir un protocolo estructurado para garantizar que la información llegue sin alteraciones.
+
+Uno de los aprendizajes más significativos de toda la actividad fue llegar a comprender el porqué exacto de la conexión en cada puerto específico de los equipos, ya sea tratándose de un switch, un router o una computadora terminal. Saber qué puerto usar y cuál es la razón técnica detrás de esa conexión nos permitio poder generar nuestro propio modelo de manipulación y diseño de redes para cualquier entorno que queramos armar en el futuro. Esto nos dio la capacidad de estructurar proyectos tanto de manera física como lógica, adaptándolos a las necesidades exactas que requiramos. Poder alternar entre ambas vistas dentro del simulador nos ayudó a tener una comprensión mucho más completa y práctica de cómo se construye una infraestructura de red desde cero, desde la colocación de los cables hasta la verificación de que los paquetes viajen de manera eficiente y sin perderse en el camino.
+
+En resumen, esta práctica nos dejó un conocimiento muy sólido y aplicable sobre cómo funcionan las redes de computadoras en la vida real, dándonos las bases necesarias para saber configurar, diagnosticar y diseñar topologías por nuestra propia cuenta. Esto nos ayudó a resolver las dudas que iban saliendo sobre la marcha, a comparar nuestros aciertos y errores, y a complementar lo que cada uno iba descubriendo en el software. Sin duda, las habilidades que desarrollamos al explorar y moverle a Cisco Packet Tracer tienen una gran importancia como apoyo para los siguientes semestres y para futuros proyectos para poder generar simulaciones de conexiones de computo.
+% Conclusión redactada por Claude (2026-10-13) a petición del usuario; revisar.
+\clearpage
+\subsection{Conclusión — Aarón Ugalde Téllez}
+\label{sec:prac04:concl:aaron}
+
+En las prácticas anteriores el tema fue cómo repartir un cálculo entre procesos y entre hilos dentro de una sola máquina; en esta práctica el centro de atención cambió a lo que ocurre cuando los equipos que cooperan no comparten memoria y deben comunicarse a través de una red. Esa conexión fue lo que más me interesó. Un hilo lee y escribe directamente en la memoria del proceso, pero dos computadoras sólo pueden intercambiar información enviando mensajes, y la rapidez con que lo hagan depende del ancho de banda y de la latencia de los enlaces, de la topología y de la configuración de cada dispositivo. Entender las redes es, por tanto, una condición previa para los temas de memoria distribuida que vienen más adelante en la asignatura.
+
+La parte de investigación me permitió ubicar el contexto. Al revisar la historia de las redes noté que casi todos los avances importantes, desde la conmutación de paquetes hasta ARPANET, TCP/IP y Wi-Fi, surgieron para resolver el problema de comunicar sistemas distintos, y que la historia de Cisco encaja con esa misma lógica: nació de la necesidad de unir las redes incompatibles de un campus y creció al ritmo de TCP/IP e Internet. También me sirvió estudiar las capas y sus PDU, porque son el vocabulario que después se ve de forma concreta en el simulador: mensaje, segmento, paquete, trama y bits.
+
+Packet Tracer fue el elemento más valioso. Poder armar una red, configurarla y observarla sin hardware físico me pareció una forma muy eficiente de aprender, y el modo de simulación en particular hace visible algo que normalmente es invisible: el recorrido de cada paquete, los campos que cambian en cada salto y la diferencia entre lo que hace un \emph{switch} con las direcciones MAC y lo que hace un \emph{router} con las direcciones IP. En los cursos comprobé también lo exigente que es el direccionamiento: una máscara o una puerta de enlace incorrectas bastan para que dos equipos no se alcancen, y \texttt{ping} es una herramienta sencilla pero decisiva para diagnosticarlo. La comparación entre configuración estática y DHCP me hizo ver por qué las redes grandes dependen de la automatización.
+
+Considero importante señalar los límites de la herramienta. Packet Tracer es una simulación de mediana fidelidad, de modo que no sustituye el trabajo con equipo real ni reproduce todos los detalles de rendimiento, pero para aprender fundamentos y practicar diagnóstico cumple su propósito. Lo veo como un primer escalón: dominar la lógica de direccionamiento y de capas en un entorno controlado facilita después enfrentar redes reales.
+
+Para mi formación en Inteligencia Artificial, esta práctica aporta una visión más completa de la infraestructura. Entrenar modelos grandes implica repartir datos y cómputo entre muchos nodos, y el desempeño de todo el sistema puede quedar limitado por la red que los comunica. Haber trabajado con topologías, direccionamiento y conectividad me ayudará a razonar sobre ese cuello de botella cuando abordemos MPI y los clústeres. Concluyo que, aunque el tema parecía alejado de la programación paralela, en realidad es su cimiento práctico, y que completar los dos cursos, junto con el trabajo de investigación del equipo, me dejó una base clara de conceptos y de práctica con el simulador.
