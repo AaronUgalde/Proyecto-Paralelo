@@ -1,48 +1,304 @@
 % =====================================================================
-%  Capítulo 5 — contenido
-%
-%  Sólo el cuerpo del capítulo: sin preámbulo, sin \begin{document},
-%  sin portada, sin índices y sin bibliografía (los pone el documento
-%  contenedor: cap05.tex para la entrega suelta, libro.tex para el libro).
-%
-%  Convenciones:
-%   * Figuras en capitulos/cap05/figuras/ con prefijo cap05-
-%     y citadas sólo por nombre: \includegraphics{cap05-esquema.png}
-%   * Etiquetas: fig:cap05:..., tab:cap05:..., sec:cap05:..., lst:cap05:...
-%   * Citas con \cite{clave} sobre bib/referencias.bib
+%  Capítulo 5 — contenido (Programación con openMPI)
+%  Sólo el cuerpo del capítulo: sin preámbulo, portada ni bibliografía.
+%  Código: capitulos/cap05/codigo/{fourier_mpi.c, Makefile}
+%  Misma función y misma fórmula de coeficientes que el Capítulo 4.
+%  Las conclusiones de Cruz Trejo, Romero Rosales y López Castro las
+%  escribieron sus autores (ajustadas a macOS y al código real). La de
+%  Ugalde Téllez la redactó Claude con base en el código real (2026-10-22).
 % =====================================================================
 
-\chapter{\TituloCapCinco}
+\chapter{Programación con openMPI}
 \label{cap:05}
 
-\section{Introducción}
-\label{sec:cap05:introduccion}
+% ==========================================
+% SECCIÓN 5.1
+% ==========================================
+\section{Marco teórico}
+\label{sec:cap05:marco}
 
-Contenido pendiente.
+El cómputo paralelo de memoria distribuida organiza la ejecución en procesos independientes, cada uno con su propio espacio de direcciones, que cooperan intercambiando mensajes de forma explícita. \textit{Message Passing Interface} (MPI) es la especificación estándar de ese modelo, definida por el MPI Forum \cite{mpiforum2021}, y \textbf{Open MPI} es una de sus implementaciones de código abierto, de uso muy extendido en equipos de escritorio y en clústeres \cite{openmpi2024}. En lenguaje C, la interfaz se obtiene con la cabecera \texttt{<mpi.h>} \cite{pacheco2011}.
 
-\section{Desarrollo}
-\label{sec:cap05:desarrollo}
+A diferencia de los hilos del capítulo anterior, que comparten memoria dentro de un mismo proceso, en MPI los datos sólo viajan si el programador los envía o los recolecta con una llamada. Un programa MPI es un único ejecutable que el lanzador (\texttt{mpirun}) copia en $P$ procesos; cada copia se distingue por su \textit{rank}, un entero entre $0$ y $P-1$ dentro de un \textit{comunicador}. Las funciones usadas en este capítulo son:
+\begin{itemize}
+    \item \texttt{MPI\_Init()} y \texttt{MPI\_Finalize()}: inician y cierran el entorno MPI.
+    \item \texttt{MPI\_Comm\_rank()} y \texttt{MPI\_Comm\_size()}: devuelven el identificador del proceso y el total de procesos del comunicador \texttt{MPI\_COMM\_WORLD}.
+    \item \texttt{MPI\_Gatherv()}: operación colectiva que reúne en un proceso raíz bloques de tamaño distinto enviados por cada proceso.
+    \item \texttt{MPI\_Reduce()}: operación colectiva que combina un valor de cada proceso en el proceso raíz (aquí, la suma de los aportes a cada $S_N(x)$ y el máximo del tiempo de ejecución).
+    \item \texttt{MPI\_Wtime()}: reloj de pared para medir tiempos.
+    \item \texttt{MPI\_Abort()}: termina todos los procesos ante un error irrecuperable.
+\end{itemize}
 
-Contenido pendiente.
+La compilación se hace con el envoltorio \texttt{mpicc}, que invoca al compilador de C del sistema (en macOS, Apple Clang) con las rutas y bibliotecas de MPI, y la ejecución con \texttt{mpirun -np P}. Cuando se piden más procesos que núcleos disponibles se agrega \texttt{--oversubscribe}, que permite al sistema operativo planificarlos por turnos.
 
-% Ejemplo de figura (descomenta y ajusta):
-% \Figura{cap05-ejemplo.png}{0.7}{Pie de la figura.}{capjemplo}
+% ==========================================
+% SECCIÓN 5.2
+% ==========================================
+\section{Programación con openMPI en lenguaje C y en la plataforma macOS}
+\label{sec:cap05:programacion}
 
-% Ejemplo de tabla (descomenta y ajusta):
-% \begin{table}[H]
-%     \centering
-%     \caption{Pie de la tabla.}
-%     \label{tab:capjemplo}
-%     \begin{tabular}{lrr}
-%         \toprule
-%         \textbf{Columna} & \textbf{Valor} & \textbf{Unidad} \\
-%         \midrule
-%         Ejemplo & 0.00 & s \\
-%         \bottomrule
-%     \end{tabular}
-% \end{table}
+Se programaron en C los coeficientes de la serie de Fourier de la misma función del Capítulo 4, $f(x) = -\frac{1}{4}x^4 + 3$, para los primeros $100$ armónicos. Al ser $f$ una función par, $b_n = 0$ y
+\[
+a_n = \frac{2\,(-1)^n\,\left(6 - n^2\pi^2\right)}{n^4},
+\qquad
+\frac{a_0}{2} = 3 - \frac{\pi^4}{20} \approx -1.8704546 .
+\]
+Se ejecutan $100$ procesos MPI, uno por armónico, y el código también funciona con cualquier $P$ entre $1$ y $100$. Además de los coeficientes, el programa evalúa la serie en $201$ puntos $x\in[-\pi,\pi]$ para poder graficar la función original y sus sumas parciales
+\[
+S_N(x) = \frac{a_0}{2} + \sum_{n=1}^{N}\left(a_n\cos nx + b_n\sin nx\right),
+\qquad N \in \{1,3,5,10,50,100\}.
+\]
 
+\subsection{Fragmentos de código explicados}
+
+\textbf{Función de cálculo.} Es la misma fórmula de $a_n$ y $b_n$ que usó cada hilo en el Capítulo 4; sólo cambia quién la ejecuta:
+
+\begin{lstlisting}[style=C]
+static void calcular_armonico(int n, double *an, double *bn)
+{
+    *an = (2.0 * ((n % 2 == 0) ? 1.0 : -1.0) *
+          (6.0 - (n * n * M_PI * M_PI))) /
+          ((double)n * n * n * n);
+    *bn = 0.0; /* la funcion es par */
+}
+\end{lstlisting}
+
+\textbf{Inicio, validación y reparto.} Tras \texttt{MPI\_Init}, cada proceso consulta su \texttt{rank} y el total \texttt{size}. Se valida que no haya más procesos que armónicos y se reparte el trabajo por bloques: los primeros \texttt{resto} procesos reciben un armónico adicional cuando $100$ no es divisible entre $P$.
+
+\begin{lstlisting}[style=C]
+MPI_Init(&argc, &argv);
+MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+if (size > NUM_ARMONICOS) { /* error y salida limpia */ }
+
+int base   = NUM_ARMONICOS / size;
+int resto  = NUM_ARMONICOS % size;
+int mios   = base + (rank < resto ? 1 : 0);
+int inicio = rank * base + (rank < resto ? rank : resto);
+\end{lstlisting}
+
+\textbf{Cálculo local.} Cada proceso llena un arreglo propio con tres valores por armónico ($n$, $a_n$, $b_n$). No hay memoria compartida: el resultado vive en la memoria privada del proceso hasta que se recolecta.
+
+\begin{lstlisting}[style=C]
+for (int i = 0; i < mios; i++) {
+    int n = inicio + i + 1;          /* armonicos 1..100 */
+    double an, bn;
+    calcular_armonico(n, &an, &bn);
+    local[i*CAMPOS + 0] = n;
+    local[i*CAMPOS + 1] = an;
+    local[i*CAMPOS + 2] = bn;
+}
+\end{lstlisting}
+
+\textbf{Aporte a la gráfica.} Dentro del mismo ciclo, cada proceso suma el término $a_n\cos nx + b_n\sin nx$ de su armónico en un arreglo local \texttt{aporte}, para cada suma parcial $S_N$ con $n\le N$ y para cada punto $x$. Así, el cálculo de la gráfica también se reparte entre los procesos.
+
+\begin{lstlisting}[style=C]
+for (int c = 0; c < NUM_CORTES; c++) {
+    if (n > CORTES[c]) continue;
+    for (int k = 0; k < NUM_PUNTOS; k++) {
+        double x = -M_PI + 2.0*M_PI*k/(NUM_PUNTOS-1);
+        aporte[c*NUM_PUNTOS + k] += an*cos(n*x) + bn*sin(n*x);
+    }
+}
+\end{lstlisting}
+
+\textbf{Recolección.} El proceso $0$ calcula cuántos datos envía cada proceso (\texttt{conteos}) y en qué posición del arreglo final se colocan (\texttt{desplaz}); \texttt{MPI\_Gatherv} reúne todos los coeficientes en una sola llamada; \texttt{MPI\_Reduce} con \texttt{MPI\_SUM} suma los aportes de todos los procesos para formar cada $S_N(x)$, y otro \texttt{MPI\_Reduce} con \texttt{MPI\_MAX} obtiene el tiempo del proceso más lento. Esta operación colectiva sustituye al \texttt{pthread\_join()} del capítulo anterior y a los semáforos de la fase de procesos: cada proceso escribe sólo en su propio bloque, por lo que no hay condiciones de carrera.
+
+\begin{lstlisting}[style=C]
+MPI_Gatherv(local, mios * CAMPOS, MPI_DOUBLE,
+            todos, conteos, desplaz, MPI_DOUBLE,
+            0, MPI_COMM_WORLD);
+
+MPI_Reduce(aporte, suma, NUM_CORTES * NUM_PUNTOS,
+           MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+MPI_Reduce(&t_local, &t_max, 1, MPI_DOUBLE,
+           MPI_MAX, 0, MPI_COMM_WORLD);
+\end{lstlisting}
+
+{\emergencystretch=3em Finalmente el proceso $0$ suma $a_0/2$ a cada $S_N(x)$ y escribe dos archivos para importar a Excel: \texttt{fourier\_\allowbreak mpi\_\allowbreak resultados.csv} (columnas \texttt{n}, \texttt{an}, \texttt{bn} y \texttt{proceso}), cuya primera fila ($n=0$) guarda el término constante $a_0/2$ y \texttt{fourier\_\allowbreak mpi\_\allowbreak grafica.csv} (columnas \texttt{x}, \texttt{f\_\allowbreak original}, \texttt{S\_\allowbreak 1}, \texttt{S\_\allowbreak 3}, \texttt{S\_\allowbreak 5}, \texttt{S\_\allowbreak 10}, \texttt{S\_\allowbreak 50} y \texttt{S\_\allowbreak 100}). El código completo y el \texttt{Makefile} están en los anexos (sección~\ref{sec:cap05:anexos}).\par}
+
+\subsection{Compilación}
+
+La compilación se realiza con \texttt{make}, que invoca a \texttt{mpicc} con \texttt{-Wall -Wextra -std=c11 -O2} y enlaza la biblioteca matemática (\texttt{-lm}). La compilación termina sin errores ni advertencias.
+
+\Figura{cap05-compilacion.png}{0.85}{Compilación del programa con \texttt{make} (\texttt{mpicc -Wall -Wextra}), sin errores ni advertencias.}{cap05:compilacion}
+
+\subsection{Ejecución de los programas}
+
+La ejecución con $100$ procesos se lanza con \texttt{make run}, que ejecuta \texttt{mpirun} con \texttt{-np 100}, la opción \texttt{--oversubscribe} y el ejecutable \texttt{./fourier\_mpi}. El programa imprime un resumen y descarga la información en los dos archivos CSV.
+
+\Figura{cap05-ejecucion.png}{0.7}{Ejecución con \texttt{make run}: 100 procesos MPI, tiempo máximo y archivos CSV generados.}{cap05:ejecucion}
+
+El programa también se probó con otros números de procesos ($1$ y $7$), donde los armónicos se reparten en bloques desiguales. En todos los casos los coeficientes ($n$, $a_n$ y $b_n$) y el archivo de la gráfica fueron idénticos a los obtenidos con $100$ procesos; sólo cambia la columna \texttt{proceso} de \texttt{fourier\_\allowbreak mpi\_\allowbreak resultados.csv}, porque depende de cómo se reparten los armónicos. Con $101$ procesos el programa lo rechaza con un mensaje de error. La Tabla~\ref{tab:cap05:valores} muestra algunos valores del archivo generado.
+
+\begin{table}[H]
+    \centering
+    \caption{Coeficientes obtenidos con openMPI (extracto del CSV, ejecución con $100$ procesos).}
+    \label{tab:cap05:valores}
+    \begin{tabular}{rrrr}
+        \toprule
+        \textbf{$n$} & \textbf{$a_n$} & \textbf{$b_n$} & \textbf{Proceso} \\
+        \midrule
+        1   &  7.7392088022 & 0 & 0  \\
+        2   & -4.1848022005 & 0 & 1  \\
+        3   &  2.0450972743 & 0 & 2  \\
+        99  &  0.0020138745 & 0 & 98 \\
+        100 & -0.0019738009 & 0 & 99 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Gráficas, figuras y su explicación}
+
+{\emergencystretch=3em Los archivos CSV se importan al libro de Excel de las fases anteriores. Con \texttt{fourier\_\allowbreak mpi\_\allowbreak grafica.csv} se traza $f(x)$ contra $x$ junto con las sumas parciales $S_1$, $S_3$, $S_5$, $S_{10}$, $S_{50}$ y $S_{100}$ (gráfica de dispersión con líneas); con \texttt{fourier\_\allowbreak mpi\_\allowbreak resultados.csv} se traza $a_n$ contra $n$, igual que la gráfica del Capítulo 4.\par}
+
+\Figura{cap05-grafica-an.png}{0.8}{Coeficientes $a_n$ calculados con openMPI.}{cap05:grafica-an}
+
+\noindent\textbf{Explicación de la Figura~\ref{fig:cap05:grafica-an}:} es la gráfica de los coeficientes y no de la función. El primer punto es el término constante $a_0/2 \approx -1.87$ y los siguientes son $a_1, a_2, \dots, a_{100}$. Los valores oscilan con signo alternante ($7.74$, $-4.18$, $2.04$, \dots) porque aparece el factor $(-1)^n$, y su amplitud decae aproximadamente como $2\pi^2/n^2$: desde $n\approx 20$ ya son casi cero y en $n=100$ valen $-0.0020$. Es la misma forma de la gráfica obtenida con hilos en el Capítulo 4, lo que confirma que los coeficientes son iguales.
+
+\Figura{cap05-grafica-f.png}{0.7}{Función original $f(x)$ en $[-\pi,\pi]$.}{cap05:grafica-f}
+
+\noindent\textbf{Explicación de la Figura~\ref{fig:cap05:grafica-f}:} muestra la función que se quiere representar con la serie. Es una parábola de cuarto grado par, con máximo $f(0)=3$, que cruza el eje horizontal cerca de $x=\pm 1.9$ y llega a $f(\pm\pi)\approx -21.35$. Esta curva es la referencia contra la que se comparan las sumas parciales $S_N(x)$ del mismo archivo.
+
+\Figura{cap05-grafica-sn.png}{0.75}{Función original $f(x)$ y sumas parciales $S_1$, $S_3$, $S_5$, $S_{10}$, $S_{50}$ y $S_{100}$ calculadas con openMPI.}{cap05:grafica-sn}
+
+\noindent\textbf{Explicación de la Figura~\ref{fig:cap05:grafica-sn}:} compara la función con sus aproximaciones por la serie. $S_1$ usa sólo el término constante y el primer armónico, y por eso es una curva muy distinta de $f$: en $x=0$ vale $a_0/2+a_1\approx 5.87$ en lugar de $3$ y en $x=\pm\pi$ vale $a_0/2-a_1\approx -9.61$ en lugar de $-21.35$. Con $S_3$ y $S_5$ la curva ya sigue la forma de $f$ en el centro, aunque todavía se separa en los extremos del intervalo. A partir de $S_{10}$ las curvas casi se encuentran sobre la original, y $S_{50}$ y $S_{100}$ no se distinguen de ella a simple vista. La convergencia es rápida porque, como se vio en la Figura~\ref{fig:cap05:grafica-an}, los coeficientes decaen aproximadamente como $1/n^2$, de modo que los armónicos altos casi no modifican la suma.
+
+\subsection{Comparación con las fases anteriores}
+
+\begin{enumerate}
+    \item \textbf{Precisión numérica:} los coeficientes $a_n$ y $b_n$ calculados con openMPI usan la misma fórmula del Capítulo 4 y coinciden con los de los hilos y con el desarrollo analítico del Capítulo 1; cambiar de modelo de programación no altera el resultado matemático, y éste tampoco depende del número de procesos.
+    \item \textbf{Modelo de memoria:} en la fase de procesos con \texttt{fork()} (memoria compartida y semáforos) y en la de hilos (con \texttt{pthread\_join()}) los ejecutores compartían memoria y había que sincronizarlos; en MPI cada proceso tiene memoria privada y la información se reúne con una operación colectiva, que además es la base para ejecutar en varias máquinas.
+    \item \textbf{Costo de ejecución:} el cálculo de cada armónico es muy corto, por lo que en este problema el tiempo lo domina el costo de lanzar y coordinar los procesos y no la aritmética. Con un único proceso el cálculo tarda microsegundos, mientras que con $100$ procesos (más que núcleos disponibles) tarda unos milisegundos. Para esta carga el paralelismo no acelera el cálculo, pero sí ilustra el modelo y escalaría con problemas más pesados.
+\end{enumerate}
+
+% ==========================================
+% SECCIÓN 5.3
+% ==========================================
+\section{Análisis de la implementación con openMPI}
+\label{sec:cap05:analisis}
+
+La Tabla~\ref{tab:cap05:caracteristicas} resume las características de la implementación de esta fase.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|l|p{10cm}|}
+\hline
+\textbf{Atributo técnico} & \textbf{Especificación} \\ \hline
+\textbf{Lenguaje} & C (estándar C11) \\ \hline
+\textbf{Biblioteca} & Open MPI (\texttt{mpicc}, \texttt{mpirun}) \\ \hline
+\textbf{Paradigma} & Memoria distribuida, paso de mensajes y paralelismo de datos \\ \hline
+\textbf{Procesos} & 100 procesos MPI (ejecución principal) \\ \hline
+\textbf{Hilos} & 1 hilo por proceso (no se usan hilos explícitos) \\ \hline
+\textbf{Distribución de la carga} & Reparto por bloques: un armónico por proceso con $P=100$; adaptable a cualquier $P \le 100$ \\ \hline
+\textbf{Comunicación} & Operaciones colectivas \texttt{MPI\_Gatherv} y \texttt{MPI\_Reduce} \\ \hline
+\textbf{Sincronización} & Implícita en las operaciones colectivas \\ \hline
+\textbf{Banderas de compilación} & \texttt{-Wall -Wextra -std=c11 -O2 -lm} \\ \hline
+\textbf{Ejecución} & \texttt{mpirun -np 100 --oversubscribe} \\ \hline
+\end{tabular}
+\caption{Características de la implementación de la fase 5.}
+\label{tab:cap05:caracteristicas}
+\end{table}
+
+\subsection*{Análisis del lenguaje y la técnica utilizada}
+Se usó lenguaje C por su cercanía con el sistema operativo y porque MPI define su interfaz principal en C. La técnica es paralelismo de datos: el dominio (los $100$ armónicos) se divide entre procesos que ejecutan el mismo programa sobre distintos datos (modelo SPMD). Al no compartir memoria, no hacen falta semáforos ni \textit{mutex}; la única comunicación es la recolección final en el proceso $0$.
+
+\subsection*{Procesos, hilos y núcleos}
+\begin{itemize}
+    \item \textbf{Cantidad de procesos:} 100 procesos MPI.
+    \item \textbf{Cantidad de hilos:} 100 hilos de ejecución en total (uno por proceso).
+    \item \textbf{Núcleos de CPU:} los del equipo de la Tabla~\ref{tab:cap05:hardware}. Como $100$ supera esa cantidad, se usa la opción \texttt{--oversubscribe} y el sistema operativo planifica los procesos por turnos.
+\end{itemize}
+
+\subsection*{Características del equipo de cómputo}
+% Datos obtenidos del equipo donde se tomaron las capturas (macOS):
+% system_profiler SPHardwareDataType, sysctl hw.*, sw_vers, mpirun --version.
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|l|p{10cm}|}
+\hline
+\textbf{Componente} & \textbf{Especificación técnica} \\ \hline
+\textbf{Equipo} & MacBook Air (identificador Mac17,3) \\ \hline
+\textbf{Procesador} & Apple M5 (arquitectura ARM64) \\ \hline
+\textbf{Núcleos} & 10 núcleos (4 de alto rendimiento y 6 de eficiencia), 10 hilos de ejecución \\ \hline
+\textbf{Velocidad del CPU} & No reportada por el sistema; la frecuencia se ajusta dinámicamente según la carga \\ \hline
+\textbf{Memoria RAM} & 16 GB de memoria unificada \\ \hline
+\textbf{Memoria caché} & Núcleos de alto rendimiento: L1 de datos de 128 KB y L2 de 16 MB; núcleos de eficiencia: L1 de datos de 64 KB y L2 de 6 MB \\ \hline
+\textbf{Sistema operativo} & macOS 26.5 con Open MPI 5.0.11 (\texttt{mpicc} sobre Apple Clang 21) \\ \hline
+\end{tabular}
+\caption{Características del equipo de cómputo empleado en la fase 5.}
+\label{tab:cap05:hardware}
+\end{table}
+
+% ==========================================
+% SECCIÓN 5.4
+% ==========================================
 \section{Conclusiones del capítulo}
-\label{sec:cap05onclusiones}
+\label{sec:cap05:conclusiones}
 
-Contenido pendiente.
+\clearpage
+\subsection*{Conclusión Cruz Trejo}
+Al concluir esta quinta fase del proyecto, enfocada en la programación con OpenMPI en lenguaje C, experimenté un cambio significativo en la forma de abordar la concurrencia y el diseño de algoritmos. La tarea principal consistió en paralelizar los cálculos de los términos de la serie de Fourier, un problema matemático que ya habíamos resuelto de manera secuencial, con procesos básicos (Capítulo~3) y con hilos (Capítulo~4).
+
+Durante el desarrollo, uno de los primeros retos técnicos fue la estandarización de la compilación mediante el archivo \texttt{Makefile} y la correcta configuración del entorno de ejecución. Utilizar el compilador \texttt{mpicc} me obligó a ser sumamente riguroso con la sintaxis de C, garantizando una compilación limpia, sin errores ni advertencias, tal como lo estipulaba la rúbrica.
+
+Para la evaluación matemática de la serie de Fourier, el diseño del programa requirió una coordinación exacta. En lugar de que un solo núcleo iterara sobre todos los armónicos para calcular las sumatorias de senos y cosenos, la carga de trabajo se dividió entre los procesos: cada uno calculó su propio bloque de coeficientes y el proceso $0$ los reunió con \texttt{MPI\_Gatherv} y sumó los aportes parciales con \texttt{MPI\_Reduce}. Este modelo repartió el esfuerzo del CPU de forma equitativa y evitó que un solo proceso concentrara todo el cálculo.
+
+Al realizar una comparación directa de los resultados y la implementación de esta fase con los capítulos pasados, noté diferencias arquitectónicas profundas. En el Capítulo~4, al trabajar con hilos (\texttt{pthreads}), la memoria era compartida, lo que hacía que la comunicación fuera más rápida pero altamente susceptible a condiciones de carrera, obligándome a gestionar el control de concurrencia de forma manual.
+
+Finalmente, considero que esta práctica representa un avance invaluable en mi formación como ingeniero en Inteligencia Artificial. En el panorama tecnológico actual, el entrenamiento de arquitecturas de aprendizaje profundo y la simulación de sistemas complejos superan por mucho la capacidad de un único procesador. Entender cómo fragmentar un problema matemático como la serie de Fourier y orquestar su solución utilizando estándares industriales como MPI me otorga las bases necesarias para enfrentar futuros desafíos en el cómputo de alto rendimiento. Superar la curva de aprendizaje de esta tecnología en un entorno macOS fue demandante, pero el dominio de estos conceptos consolida mi capacidad para diseñar software verdaderamente escalable.
+
+\clearpage
+\subsection*{Conclusión Romero Rosales}
+Al finalizar esta quinta fase del proyecto, pude comprender mejor cómo funciona la programación paralela utilizando OpenMPI en lenguaje C. En esta práctica trabajamos con la serie de Fourier, un problema que ya habíamos resuelto anteriormente mediante programación secuencial y con hilos. Esto me permitió comparar las distintas formas de realizar los cálculos y entender cómo se puede distribuir el trabajo entre varios procesos para mejorar el aprovechamiento de los recursos de la computadora.
+
+Durante el desarrollo, fue necesario configurar correctamente el entorno de trabajo y utilizar el archivo \texttt{Makefile} para compilar el programa. También aprendí la importancia de utilizar el compilador \texttt{mpicc} y cuidar la sintaxis del código para evitar errores. Una parte importante de la práctica fue la comunicación entre procesos, ya que cada proceso calculó su propio bloque de armónicos y el proceso $0$ reunió los resultados mediante \texttt{MPI\_Gatherv} y \texttt{MPI\_Reduce}.
+
+Al comparar esta implementación con las prácticas anteriores, pude identificar que trabajar con MPI es diferente a utilizar hilos con \texttt{pthreads}. Mientras que los hilos comparten la misma memoria, los procesos de MPI trabajan de manera independiente y necesitan intercambiar información mediante mensajes. Esto requiere una buena organización para coordinar las tareas y asegurar que los resultados se obtengan correctamente.
+
+En conclusión, esta práctica me ayudó a reforzar mis conocimientos sobre programación paralela y a comprender su importancia para resolver problemas que requieren una gran cantidad de cálculos. Considero que lo aprendido será útil en mi formación, especialmente porque aplicaciones como el entrenamiento de modelos y las simulaciones pueden beneficiarse de este tipo de procesamiento. Aunque trabajar con OpenMPI representó un reto, me permitió conocer nuevas herramientas y comprender mejor cómo distribuir tareas para desarrollar programas más eficientes.
+
+\clearpage
+\subsection*{Conclusión López Castro}
+En el desarrollo de este quinto capítulo, la transición hacia la programación con OpenMPI representó un salto cualitativo significativo en la manera de abordar el cálculo de la serie de Fourier. Si bien en las fases anteriores habíamos explorado la concurrencia a nivel de procesos y el uso de hilos de ejecución, implementar este estándar de paso de mensajes me exigió replantear la arquitectura del problema. Calcular los términos armónicos de Fourier ya no se limitaba a sincronizar recursos locales, sino que requería una distribución explícita de las iteraciones matemáticas a través de un comunicador global. Esta experiencia me permitió comprender a fondo cómo empaquetar los cálculos matemáticos para que los distintos hilos y procesos trabajaran de manera independiente y, posteriormente, consolidar los resultados de forma íntegra.
+
+Uno de los aspectos más reveladores de esta fase fue la validación de los resultados obtenidos en el entorno macOS frente a nuestras proyecciones teóricas. Descargar la información generada por los procesos de OpenMPI a un archivo estructurado para luego volcarla en nuestra plantilla de Excel fue fundamental para corroborar empíricamente nuestra lógica. Al observar que las nuevas gráficas coincidían perfectamente con las curvas generadas en los capítulos previos, comprobé que la paralelización distribuida no alteró la precisión matemática de la serie. Mantener un control estricto sobre el flujo de los datos me enseñó que la eficiencia no debe comprometer la exactitud en los cálculos al momento de ensamblar las sumatorias.
+
+Asimismo, el análisis de la implementación me hizo mucho más consciente del impacto directo que tiene el hardware subyacente en el rendimiento del código. Al realizar las pruebas y ejecuciones desde mi entorno macOS, documentando cómo los procesos interactuaban con los núcleos del procesador Apple M5 y los 16 GB de memoria de mi equipo, logré dimensionar el verdadero costo de la latencia en las comunicaciones y el papel de la memoria caché. Sumado a esto, organizar el proyecto mediante el archivo \texttt{Makefile} y asegurar una compilación impecable mediante \texttt{mpicc} sin advertencias fue esencial; en un entorno de paso de mensajes, cualquier ambigüedad en el código C puede derivar en bloqueos que son sumamente complejos de depurar.
+
+En conclusión, esta fase del proyecto me demostró que el cómputo paralelo requiere una sinergia perfecta entre el conocimiento matemático, la arquitectura del software y las características del equipo de cómputo. Dividir la carga computacional de la serie de Fourier en fragmentos manejables por OpenMPI me brindó una perspectiva invaluable para mi formación analítica. Comprender cómo escalar cálculos complejos de manera distribuida es una competencia técnica fundamental que, sin duda, será clave para futuros desarrollos donde la complejidad algorítmica exija superar las limitaciones del procesamiento secuencial tradicional.
+
+\clearpage
+\subsection*{Conclusión Ugalde Téllez}
+% Redactada por Claude (2026-10-22) con base en el código real; Aarón puede ajustarla.
+
+Esta fase me hizo cambiar la forma de pensar el mismo problema. En los capítulos anteriores la serie de Fourier se calculó con procesos creados con \texttt{fork()} y con hilos, y en los dos casos había memoria que compartir y algo que sincronizar. Con openMPI esa idea desaparece: cada proceso tiene su propia memoria, calcula su armónico y lo único que existe es la comunicación explícita. Entender que ya no podía escribir en un arreglo común, sino que tenía que recolectar los resultados con \texttt{MPI\_Gatherv}, fue lo más formativo del capítulo.
+
+Programar el reparto también tuvo su detalle. Con $100$ procesos cada uno toma un armónico, pero quise que el programa funcionara con cualquier número de procesos entre $1$ y $100$, así que calculé bloques desiguales con \texttt{base} y \texttt{resto}, y los tamaños y desplazamientos que necesita \texttt{MPI\_Gatherv}. Probé el programa con $1$, $7$ y $100$ procesos y los coeficientes y el archivo de la gráfica salieron idénticos en los tres casos (sólo cambia la columna \texttt{proceso}), lo cual me dio confianza de que el reparto estaba bien. También agregué una validación para rechazar más de $100$ procesos, porque en un programa paralelo un dato fuera de rango puede dejar procesos esperando para siempre.
+
+Una observación que no esperaba es que usar $100$ procesos tardó unos milisegundos, mientras que con un solo proceso el cálculo duró microsegundos. Cada armónico es una operación tan pequeña que el costo de lanzar y coordinar los procesos pesa más que el cálculo, y como el equipo tiene menos núcleos que procesos tuve que usar \texttt{--oversubscribe}. Aprendí que paralelizar no siempre acelera: depende de que el trabajo de cada proceso sea lo bastante grande frente al costo de comunicarlos.
+
+También valoré el trabajo con \texttt{Makefile}: compilar con \texttt{-Wall -Wextra} y lograr cero advertencias me obligó a revisar tipos y conversiones, y poder lanzar todo con \texttt{make run} hizo las pruebas repetibles. Llevar los datos del CSV a Excel y ver que las gráficas coincidían con las fases anteriores confirmó que el modelo de programación cambia la forma de ejecutar, pero no el resultado matemático. Me llevo de esta fase una base sólida para entender cómo se trabaja en memoria distribuida, que es el paso natural para ejecutar programas en varias máquinas.
+
+\clearpage
+
+% ==========================================
+% SECCIÓN 5.5 (Anexos)
+% ==========================================
+\section{Anexos}
+\label{sec:cap05:anexos}
+
+\subsection*{Anexo A. Fase 5: programa con openMPI}
+Código de la fase 5 (\texttt{capitulos/cap05/codigo/fourier\_mpi.c}).
+
+\lstinputlisting[style=C]{capitulos/cap05/codigo/fourier_mpi.c}
+
+\subsection*{Anexo B. Fase 5: Makefile}
+\lstinputlisting[language=make]{capitulos/cap05/codigo/Makefile}
+
+\subsection*{Anexo C. Códigos de las fases anteriores}
+Los códigos de la fase 3 (procesos) se encuentran en los anexos del Capítulo~3 y el de la fase 4 (hilos) en el Capítulo~4; no se repiten aquí.
