@@ -1,0 +1,398 @@
+\setcounter{chapter}{6}
+\chapter{Cómputo paralelo con memoria distribuida utilizando sockets}
+
+\section{Resumen}
+En la presente práctica se diseña e implementa una arquitectura de memoria distribuida empleando el paradigma cliente-servidor mediante la interfaz de sockets de Berkeley en lenguaje C. El objetivo central consiste en interconectar y orquestar un conjunto de computadoras dentro de una red de área local (LAN) para resolver un problema matemático de forma estrictamente paralela, superando así las limitaciones de los sistemas de memoria compartida. 
+
+El documento se estructura iniciando con una introducción al modelo de red y los protocolos de transporte, seguido de un marco teórico detallado que profundiza en el funcionamiento, ciclo de vida y diferencias fundamentales de los sockets orientados a conexión (TCP) y los no orientados a conexión (UDP). En la sección de desarrollo, se documenta paso a paso la configuración topológica de la red, demostrando la asignación dinámica de direcciones IP a través de un servidor DHCP para diez nodos independientes. Asimismo, se expone de forma exhaustiva la lógica de interconexión y la programación concurrente del sistema, detallando cómo el nodo coordinador generador filas de una matriz de datos a múltiples nodos cliente a través de un socket TCP en el puerto 10000 (usando hilos de ejecución para evitar cuellos de botella) y cómo estos retornan sus cálculos locales mediante datagramas a un segundo servidor UDP en el puerto 20000. Finalmente, en las conclusiones, se discuten las implicaciones arquitectónicas, los retos de sincronización enfrentados y la viabilidad de escalar la programación de la capa de red a bajo nivel para entornos reales de cómputo distribuido.
+
+\section{Introducción}
+La evolución del cómputo de alto rendimiento ha demostrado que los sistemas de memoria compartida, aunque eficientes a nivel de procesador, enfrentan límites físicos ineludibles al intentar escalar. Para superar estas barreras, el diseño de arquitecturas de memoria distribuida se ha vuelto el estándar en la industria. En este modelo, cada nodo de procesamiento posee su propia memoria local y la cooperación depende enteramente del intercambio de mensajes a través de una red de datos \cite{tanenbaum2012}.
+
+El propósito de esta práctica es descender un nivel en la abstracción de las comunicaciones en red y construir un sistema paralelo directamente sobre la capa de transporte utilizando Sockets. A diferencia de interfaces de alto nivel (como OpenMPI), gestionar las conexiones mediante Sockets exige al desarrollador administrar de forma manual las direcciones IP, los puertos de escucha, el encolamiento de peticiones y el ciclo de vida de las conexiones bidireccionales \cite{sosa2017}. 
+
+A lo largo de este reporte se abordará la configuración de una topología LAN controlada por un servidor DHCP, donde un "nodo coordinador" orquestará a múltiples "nodos clientes" concurrentes. Para evitar bloqueos, el coordinador implementará hilos (threads) de atención dedicados a cada cliente \cite{cisco2023}. La carga de trabajo consistirá en distribuir de manera segmentada una matriz de $10 \times 3$, de modo que cada cliente se conecte al servicio, reciba una fila, ejecute la multiplicación escalar de sus elementos de forma local y retorne el resultado a través de un protocolo más rápido y ligero.
+
+\section{Marco Teórico}
+
+\subsection{Sockets: Interfaz de Programación de Redes}
+Un \textit{socket} es el punto final (endpoint) de un enlace de comunicación bidireccional entre dos programas que se ejecutan en una red. Originados en la Universidad de Berkeley (Berkeley Sockets), se han convertido en el estándar POSIX (API) por excelencia para el desarrollo de aplicaciones de red en lenguajes como C y C++ \cite{sosa2017}.
+
+Un socket abstrae la complejidad de las capas de enlace e IP, permitiendo al programador interactuar con la red mediante descriptores de archivo convencionales. Para establecer una comunicación, un socket requiere ser enlazado a una combinación única de una \textbf{Dirección IP} (que identifica a la máquina en la red) y un \textbf{Puerto lógico} (que identifica al proceso específico dentro de esa máquina) \cite{tanenbaum2012}.
+
+\subsection{Protocolos TCP y UDP}
+Los sockets operan principalmente sobre dos protocolos de la capa de transporte \cite{cisco2023}:
+\begin{itemize}
+    \item \textbf{TCP (Transmission Control Protocol):} Es un protocolo orientado a conexión, confiable y con control de flujo. Garantiza que los paquetes de bytes lleguen completos y en el orden correcto. En el contexto de esta práctica, TCP es ideal para el envío exacto de las filas de la matriz desde el coordinador, ya que la pérdida de un solo número corrompería todo el cálculo matemático paralelo.
+    \item \textbf{UDP (User Datagram Protocol):} Es un protocolo no orientado a conexión. Es más rápido y ligero que TCP debido a carece de mecanismos de verificación y ordenamiento. Resulta extremadamente útil para transferencias veloces o emisiones de confirmación, como el envío del resultado escalar final de vuelta al servidor recolector.
+\end{itemize}
+
+\section{Desarrollo}
+
+\subsection{Asignación de direcciones IP mediante DHCP}
+Se configuraron 10 nodos clientes dentro de la red LAN propuesta. Mediante un servidor DHCP, cada una de las computadoras recibió una dirección IP dinámica de manera exitosa en la subred correspondiente para poder comunicarse sin conflictos con el nodo coordinador. A continuación, se presenta la evidencia individual de la asignación automática en las 10 computadoras que conforman el clúster:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{pc1.jpeg}
+    \caption{Asignación DHCP exitosa - PC 1}
+    \vspace{0.5cm}
+    \includegraphics[width=0.7\textwidth]{pc2.jpeg}
+    \caption{Asignación DHCP exitosa - PC 2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{pc3.jpeg}
+    \caption{Asignación DHCP exitosa - PC 3}
+    \vspace{0.5cm}
+    \includegraphics[width=0.7\textwidth]{pc4.jpeg}
+    \caption{Asignación DHCP exitosa - PC 4}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{pc5.jpeg}
+    \caption{Asignación DHCP exitosa - PC 5}
+    \vspace{0.5cm}
+    \includegraphics[width=0.7\textwidth]{pc6.jpeg}
+    \caption{Asignación DHCP exitosa - PC 6}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{pc7.jpeg}
+    \caption{Asignación DHCP exitosa - PC 7}
+    \vspace{0.5cm}
+    \includegraphics[width=0.7\textwidth]{pc8.jpeg}
+    \caption{Asignación DHCP exitosa - PC 8}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{pc9.jpeg}
+    \caption{Asignación DHCP exitosa - PC 9}
+    \vspace{0.5cm}
+    \includegraphics[width=0.7\textwidth]{pc10.jpeg}
+    \caption{Asignación DHCP exitosa - PC 10}
+\end{figure}
+
+\subsection{Implementación de la Conexión y Lógica de Sockets}
+Para distribuir la carga matemática eficientemente, el sistema paralelo se estructuró en tres componentes de red autónomos: un servidor generador TCP, un procesador cliente híbrido y un servidor recolector UDP.
+
+\subsubsection{Fase 1: Generación Concurrente de Filas (Servidor TCP)}
+El nodo coordinador inicializa un servicio \texttt{TCP} orientado a conexión (\texttt{SOCK\_STREAM}) escuchando activamente en el \textbf{puerto 10000}. Su matriz principal consta de 10 filas numéricas estáticas. Dado que 10 computadoras intentarán solicitar información casi simultáneamente, si el servidor atendiera las peticiones de forma secuencial, se crearía un cuello de botella bloqueante. Para solucionarlo, el servidor invoca la biblioteca \texttt{pthread.h}. Cada vez que la función \texttt{accept()} registra a un cliente, el servidor principal delega la conexión creando un hilo de atención independiente mediante \texttt{pthread\_create()}, enviándole un \texttt{struct} con el descriptor del socket y el índice de la fila correspondiente. El hilo envía la submatriz a través de la red empleando la función \texttt{send()} y cierra su canal local de inmediato, garantizando una alta disponibilidad.
+
+\subsubsection{Fase 2: Procesamiento Híbrido (Nodo Cliente)}
+Por su parte, los 10 nodos clientes operan en dos etapas. Primero, actúan como receptores TCP conectándose al puerto 10000 del coordinador. Mediante la primitiva \texttt{recv()}, reciben el paquete de datos, lo desempaquetan (extrayendo el ID de la fila y los tres enteros) y cierran el canal TCP local. Seguidamente, el microprocesador local efectúa la multiplicación escalar de los números recibidos.
+Para la etapa de retorno, el cliente instancía un nuevo socket, esta vez orientado a datagramas UDP (\texttt{SOCK\_DGRAM}), con la finalidad de transferir la respuesta de forma ligera y sin necesidad de establecer una sesión persistente. Con la función \texttt{sendto()}, emite un paquete que contiene el resultado hacia el puerto 20000 del servidor.
+
+\subsubsection{Fase 3: Recolección y Cierre (Servidor UDP)}
+Paralelamente al generador de filas, el nodo coordinador ejecuta un segundo servicio de fondo anclado al \textbf{puerto 20000}. Debido a la naturaleza de recepción múltiple, este servidor se programó bajo el protocolo UDP (\texttt{SOCK\_DGRAM}), utilizando un búfer de 1024 bytes. Al no haber control de sesión, el programa emplea un ciclo definido para ejecutar la función de escucha pasiva \texttt{recvfrom()} exactamente 10 veces. Conforme los resultados calculados atraviesan la LAN y son interceptados, el servidor extrae la dirección IP de origen e imprime dinámicamente en consola qué nodo culminó su labor y su resultado, dando por finalizado el procesamiento distribuido.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{servidor_filas.jpeg}
+    \caption{Ejecución en consola del servidor generador de filas (TCP).}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{servidor_resultados.jpeg}
+    \caption{Ejecución en consola del servidor recolector de resultados (UDP).}
+\end{figure}
+\clearpage
+\section{Conclusiones}
+
+\subsection{Cruz Trejo Said Carbot}
+Esta práctica me pareció bastante interesante porque fue una de las primeras veces en las que pude comprender de manera más clara lo que implica trabajar con varias computadoras dentro de un sistema de cómputo paralelo. Aunque anteriormente ya habíamos realizado ejercicios relacionados con este tema, en esta ocasión tuvimos que implementar directamente la comunicación entre los equipos mediante sockets, lo que hizo que el desarrollo fuera un poco más complejo. Al principio parecía que únicamente necesitábamos distribuir una matriz entre las diez computadoras y recibir los resultados, pero conforme fuimos avanzando comprendí que detrás de este proceso existían diferentes mecanismos que debían funcionar correctamente para lograr la comunicación.
+
+Una de las partes que más trabajo nos dio fue configurar la comunicación entre los nodos. Para esto utilizamos DHCP, permitiendo que cada computadora obtuviera una dirección IP dentro de la red. Posteriormente, implementamos sockets para establecer la conexión entre el servidor coordinador y los clientes. Esto me permitió comprender mejor el funcionamiento de funciones como \texttt{socket()}, \texttt{bind()}, \texttt{listen()} y \texttt{accept()}, así como la manera en que se pueden establecer conexiones entre diferentes equipos mediante el protocolo TCP. También me pareció interesante observar que, aunque los cálculos realizados por los clientes eran relativamente sencillos, la administración de las conexiones y el intercambio de información requerían una mayor atención.
+
+Otro aspecto que considero importante fue comprender las diferencias entre TCP y UDP, ya que ambos protocolos cumplen funciones distintas dentro de nuestro programa. Utilizamos TCP para distribuir las filas de la matriz a los clientes, aprovechando la confiabilidad y el orden en la transmisión de los datos, mientras que UDP permitió enviar los resultados de regreso al servidor mediante datagramas. Además, la implementación de hilos con \texttt{pthread\_create()} permitió que el servidor atendiera las conexiones de los clientes de manera concurrente, evitando tener que procesarlas completamente de forma secuencial. Esto me ayudó a entender mejor cómo se puede mejorar la organización de un programa cuando se trabaja con múltiples nodos.
+
+En conclusión, considero que esta práctica fue bastante útil para reforzar los conocimientos adquiridos durante el curso y comprender mejor los fundamentos del cómputo paralelo con memoria distribuida. Más allá de conseguir que el programa funcionara, me permitió identificar que la comunicación, la sincronización y la correcta administración de los recursos son aspectos fundamentales para que un sistema distribuido pueda operar adecuadamente. Personalmente, creo que conocer estas herramientas y mecanismos será de mucha utilidad en futuros proyectos, especialmente cuando sea necesario desarrollar aplicaciones que involucren una mayor cantidad de equipos y procesos.
+
+\clearpage
+
+\subsection{López Castro Magaly}
+Implementar un sistema de memoria distribuida utilizando directamente la interfaz de Sockets representó un reto técnico fascinante y un cambio drástico de perspectiva analítica respecto a nuestras prácticas pasadas. Cuando utilizábamos herramientas de alto nivel como OpenMPI, dábamos por sentado todo el enrutamiento y la concurrencia; la biblioteca se encargaba de serializar los datos mágicamente. Sin embargo, construir este modelo cliente-servidor "desde cero" me hizo comprender la verdadera complejidad estructural de la capa de transporte. Tener que levantar un socket, enlazarlo a un puerto lógico con \texttt{bind}, y sobre todo lidiar con el bloqueo inminente de la función \texttt{accept()}, nos obligó a diseñar una solución rigurosamente asíncrona. 
+
+Uno de mis mayores hallazgos en esta práctica fue comprender a fondo la criticidad de los hilos de ejecución (POSIX threads) para evitar condiciones de carrera y \textit{deadlocks} en el servidor. Al derivar la atención de cada cliente hacia un \textit{thread} independiente, logramos que el nodo coordinador jamás se detuviera a esperar, eliminando los cuellos de botella en la red LAN. Si hubiéramos intentado despachar las filas de forma secuencial, el paradigma paralelo habría colapsado. 
+
+Durante el desarrollo de esta práctica, mi principal enfoque de aprendizaje estuvo en la configuración lógica y física de la topología de red. Al principio, podría parecer que conectar un conjunto de computadoras a un switch es una tarea trivial, pero administrar el enrutamiento para cómputo paralelo requiere una planificación meticulosa. La implementación exitosa del servidor DHCP fue un paso crítico; al tener que manejar 10 nodos independientes, asignar direcciones IP de forma manual habría sido no solo tedioso, sino propenso a colisiones en la red LAN. Al automatizar este proceso, garantizamos que cada máquina recibiera su propia identidad dentro de la subred, permitiéndoles alcanzar la IP del nodo coordinador sin conflictos. Esta práctica me demostró empíricamente que, en el cómputo distribuido, la eficiencia del hardware de red y la correcta configuración de la capa de enlace son tan importantes como el algoritmo de programación mismo, ya que un mal ruteo genera latencia que destruye cualquier ventaja de paralelizar los procesos.
+
+Desde la perspectiva de la Ingeniería en Inteligencia Artificial, que es mi área de especialidad, este nivel de entendimiento a bajo nivel es invaluable. Hoy en día, el entrenamiento de modelos masivos y arquitecturas de aprendizaje profundo no se realiza en una sola máquina, sino en clústeres inmensos de GPUs que se comunican incesantemente. Comprender cómo viaja la información entre los nodos, cómo se segmentan matemáticamente las estructuras de datos (en nuestro caso, las filas de la matriz) y cómo el protocolo TCP garantiza que ningún peso sináptico se pierda en la transmisión, me otorga unas bases de ingeniería de software sumamente robustas. Trascender del código local al ecosistema de red es el verdadero pilar del procesamiento paralelo moderno.
+
+\clearpage
+
+\subsection{Romero Rosales Lino Ehecatl}
+Realizar esta práctica representó un cambio bastante importante en la forma en que veníamos trabajando con el cómputo paralelo, ya que anteriormente utilizábamos herramientas como OpenMPI que nos facilitaban bastante la comunicación entre los procesos. Sin embargo, en esta ocasión tuvimos que trabajar directamente con sockets, lo que nos permitió entender mejor cómo se comunican las computadoras cuando cada una cuenta con su propia memoria. Ya no se trataba solamente de dividir un problema y hacer que varios procesos lo resolvieran al mismo tiempo, sino que ahora también teníamos que encargarnos de establecer las conexiones, enviar los datos y recibir los resultados correctamente a través de una red. Para lograr esto, utilizamos una arquitectura cliente servidor en la que una computadora funcionaba como coordinador y las demás como nodos clientes.
+
+Uno de los primeros retos que tuvimos fue configurar correctamente la red para que las diez computadoras pudieran comunicarse entre sí. Para solucionar esto, utilizamos un servidor DHCP que se encargaba de asignar automáticamente las direcciones IP a cada computadora. Esto fue bastante importante, porque sin una dirección dentro de la misma red no habría sido posible establecer las conexiones necesarias para realizar nuestros cálculos. Después de conseguir que todos los equipos tuvieran comunicación, comenzamos con la implementación de los sockets en lenguaje C. Aquí fue donde apareció otra dificultad, ya que tuvimos que comprender cómo funcionaban las conexiones mediante funciones como \texttt{socket()}, \texttt{bind()}, \texttt{listen()} y \texttt{accept()}, las cuales nos permitieron crear un servidor capaz de recibir las solicitudes de los diferentes clientes.
+
+Otro de los aspectos que me pareció bastante interesante fue el uso de hilos mediante pthreads, ya que si el servidor atendía a cada computadora de manera secuencial, se generaría un tiempo de espera innecesario. Para evitar esto, implementamos hilos de atención que permitían repartir las filas de nuestra matriz de forma concurrente. Además, utilizamos TCP para enviar los datos a los clientes, ya que necesitábamos que la información llegara correctamente, mientras que para regresar los resultados utilizamos UDP, que nos permitió enviar los cálculos de una manera más ligera. De esta forma, cada computadora recibió una fila de la matriz, realizó la multiplicación de sus elementos y posteriormente envió su resultado al servidor coordinador, donde se pudieron visualizar los diez resultados obtenidos.
+
+Al final, todo esto nos permitió comprobar que era posible realizar un cálculo distribuido utilizando únicamente las herramientas de comunicación de bajo nivel. Ver cómo las diez computadoras podían trabajar de manera independiente y después enviar sus resultados al coordinador, porque pudimos observar de forma práctica cómo funciona realmente la comunicación dentro de una arquitectura distribuida. Esta práctica me dejó un aprendizaje muy importante sobre la manera en que se conectan los equipos, cómo se intercambia información entre ellos y la importancia de organizar correctamente las tareas para evitar problemas durante la ejecución. En lo personal, considero que esta experiencia me ayudó a comprender mejor el funcionamiento de los sockets y las diferencias entre TCP y UDP, además de darme una perspectiva más amplia sobre cómo se pueden construir sistemas de cómputo paralelo utilizando varias computadoras en lugar de depender únicamente de una sola computadora.
+
+\clearpage
+
+\subsection{Ugalde Téllez Aarón}
+A lo largo de esta práctica pude darme cuenta de que implementar un sistema de cómputo paralelo utilizando sockets requiere tener bastante cuidado con la forma en que se organiza la comunicación. En comparación con las prácticas anteriores, donde utilizábamos herramientas que facilitaban la distribución de los cálculos, aquí tuvimos que trabajar directamente con las funciones encargadas de establecer las conexiones entre los equipos. Esto hizo que el desarrollo fuera un poco más complicado, pero también permitió conocer mejor cómo funciona realmente una arquitectura de memoria distribuida.
+
+Durante la implementación, el servidor coordinador fue una de las partes más importantes, ya que se encargaba de recibir las conexiones de los clientes y asignarles una fila de la matriz. Para poder atender varias solicitudes al mismo tiempo, utilizamos pthreads, lo que permitió que cada cliente fuera atendido mediante un hilo independiente. Considero que esta parte fue bastante importante porque nos ayudó a entender por qué la concurrencia es necesaria cuando se trabaja con múltiples computadoras y se busca evitar tiempos de espera innecesarios.
+
+Otro aspecto que me pareció interesante fue la separación de la comunicación mediante dos puertos diferentes. Por un lado, utilizamos TCP para enviar los datos a los clientes, mientras que por otro lado implementamos un servidor UDP para recibir los resultados. Esto permitió separar las tareas de distribución y recolección, haciendo que el funcionamiento del programa fuera más fácil de comprender y organizar. También fue necesario configurar correctamente las direcciones IP de los equipos mediante DHCP para que todos pudieran participar en el procesamiento.
+
+Finalmente, esta práctica me permitió comprender mejor la importancia de la comunicación dentro de los sistemas distribuidos. Aunque cada computadora realizaba únicamente una operación matemática sencilla, conseguir que todas trabajaran correctamente implicó coordinar diferentes elementos de programación y configuración de red. Considero que este conocimiento es importante porque nos acerca a la forma en que funcionan los sistemas de procesamiento más grandes, donde diferentes máquinas colaboran para realizar tareas que serían mucho más difíciles de resolver utilizando únicamente una computadora.
+
+\clearpage
+
+
+% ==========================================
+% ANEXOS: CÓDIGOS FUENTE
+% ==========================================
+\section*{Anexos: Códigos Fuente}
+\addcontentsline{toc}{section}{Anexos: Códigos Fuente}
+
+\subsection*{A. Nodo Coordinador: Servidor Generador de Filas (TCP)}
+Este componente opera en el puerto 10000, implementando hilos para generar la matriz.
+\begin{lstlisting}[style=C, caption={Implementación del servidor de filas (servidor\_filas.c)}]
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<sys/types.h>
+#include<sys/socket.h>
+#include<netinet/in.h>
+#include<arpa/inet.h>
+#include<string.h>
+#include<pthread.h>
+
+//$gcc servidor_filas.c -o servidor_filas -lpthread
+//$./servidor_filas
+
+#define PUERTO_SERVIDOR 10000
+
+int matriz[10][3] = {
+   {11,12,13},{21,22,23},{31,32,33},{41,42,43},{51,52,53},
+   {61,62,63},{71,72,73},{81,82,83},{91,92,93},{101,102,103}
+};
+
+struct datos_cliente
+{
+   int fd2;
+   int fila;
+   struct sockaddr_in cliente;
+};
+
+void *atender_cliente(void *arg)
+{
+   struct datos_cliente *datos = (struct datos_cliente *)arg;
+   char buf[100];
+   int f = datos->fila;
+   sprintf(buf,"%d %d %d %d",f+1,matriz[f][0],matriz[f][1],matriz[f][2]);
+   send(datos->fd2,buf,strlen(buf),0);
+   printf("Cliente %s -> fila %d: %d %d %d\n",inet_ntoa(datos->cliente.sin_addr),f+1,matriz[f][0],matriz[f][1],matriz[f][2]);
+   close(datos->fd2);
+   free(datos);
+   return NULL;
+}
+
+int main(int argc, char **argv)
+{
+   int fd,fd2,longitud_cliente;
+   int siguiente_fila = 0;
+   struct sockaddr_in servidor;
+   struct sockaddr_in cliente;
+   pthread_t hilo;
+   servidor.sin_family= AF_INET;
+   servidor.sin_port = htons(PUERTO_SERVIDOR);
+   servidor.sin_addr.s_addr = INADDR_ANY;
+   bzero(&(servidor.sin_zero),8);
+   if (( fd=socket(AF_INET,SOCK_STREAM,0) )<0)
+   {
+      perror("Error de apertura de socket");
+      exit(-1);
+   }
+   if(bind(fd,(struct sockaddr*)&servidor, sizeof(struct sockaddr))==-1)
+   {
+      printf("error en bind() \n");
+      exit(-1);
+   }
+   if(listen(fd,10) == -1)
+   {
+      printf("error en listen()\n");
+      exit(-1);
+   }
+   printf("Esperando nodos cliente en el puerto %d...\n",PUERTO_SERVIDOR);
+   while(siguiente_fila < 10)
+   {
+      longitud_cliente= sizeof(struct sockaddr_in);
+      if ((fd2 = accept(fd,(struct sockaddr *)&cliente,(socklen_t *)&longitud_cliente))==-1)
+      {
+         printf("error en accept()\n");
+         exit(-1);
+      }
+      struct datos_cliente *datos = malloc(sizeof(struct datos_cliente));
+      datos->fd2 = fd2;
+      datos->fila = siguiente_fila;
+      datos->cliente = cliente;
+      siguiente_fila++;
+      pthread_create(&hilo,NULL,atender_cliente,datos);
+      pthread_detach(hilo);
+   }
+   sleep(1);
+   printf("Se repartieron las 10 filas\n");
+   close(fd);
+   return 0;
+}
+\end{lstlisting}
+
+\subsection*{B. Nodo Coordinador: Servidor Recolector de Resultados (UDP)}
+Servicio ligero ejecutado en el puerto 20000 encargado de compilar los resultados calculados.
+\begin{lstlisting}[style=C, caption={Implementación del servidor de resultados (servidor\_resultados.c)}]
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+
+//$gcc servidor_resultados.c -o servidor_resultados
+//$./servidor_resultados
+
+#define PUERTO_SERVIDOR 20000
+#define LONGITUD_BUFER 1024
+
+int main(int argc, char *argv[])
+{
+   int fd, i;
+   struct sockaddr_in mi_direccion;
+   struct sockaddr_in direccion_cliente;
+   int longitud_direccion, n_bytes;
+   char bufer[LONGITUD_BUFER];
+
+   if ((fd=socket(AF_INET,SOCK_DGRAM,0))==-1)
+   {
+      perror("socket");
+      exit(1);
+   }
+
+   mi_direccion.sin_family = AF_INET;
+   mi_direccion.sin_port = htons(PUERTO_SERVIDOR);
+   mi_direccion.sin_addr.s_addr = INADDR_ANY;
+   bzero(&(mi_direccion.sin_zero), 8);
+   printf("Creando socket...\n");
+   if(bind(fd,(struct sockaddr *)&mi_direccion,sizeof(struct sockaddr))==-1)
+   {
+      perror("bind");
+      exit(1);
+   }
+   printf("Esperando resultados en el puerto %d...\n",PUERTO_SERVIDOR);
+   for(i = 0; i < 10; i++)
+   {
+      longitud_direccion=sizeof(struct sockaddr);
+      if((n_bytes=recvfrom(fd,bufer,LONGITUD_BUFER-1,0,(struct sockaddr *)&direccion_cliente,(socklen_t *)&longitud_direccion))==-1)
+      {
+         perror("recvfrom");
+         exit(1);
+      }
+      bufer[n_bytes] = '\0';
+      printf("Resultado de %s: %s\n",inet_ntoa(direccion_cliente.sin_addr),bufer);
+   }
+   printf("Se recibieron los 10 resultados\n");
+   close(fd);
+   return 0;
+}
+\end{lstlisting}
+
+\subsection*{C. Nodo Cliente: Procesamiento Híbrido TCP/UDP}
+Software ejecutado en las 10 computadoras clientes simuladas por DHCP.
+\begin{lstlisting}[style=C, caption={Implementación del nodo cliente (nodo\_cliente.c)}]
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<string.h>
+#include<strings.h>
+#include<sys/types.h>
+#include<sys/socket.h>
+#include<netinet/in.h>
+#include<arpa/inet.h>
+#include<netdb.h>
+
+//$gcc nodo_cliente.c -o nodo_cliente
+//$./nodo_cliente [Dirección IP del nodo coordinador]
+
+#define PUERTO_FILAS 10000
+#define PUERTO_RESULTADOS 20000
+
+int main(int argc, char *argv[])
+{
+   int fd,numbytes;
+   int fila,a,b,c;
+   long resultado;
+   char buf[100];
+   struct hostent *he;
+   struct sockaddr_in servidor;
+
+   if(argc != 2)
+   {
+      printf("Uso: nodo_cliente [IP del nodo coordinador]\n");
+      exit(-1);
+   }
+   if ((he=gethostbyname(argv[1]))==NULL)
+   {
+      printf("gethostbyname() error\n");
+      exit(-1);
+   }
+
+   /* Parte 1: pedir una fila al coordinador por TCP */
+   if ((fd=socket(AF_INET, SOCK_STREAM, 0))==-1)
+   {
+      printf("socket() error\n");
+      exit(-1);
+   }
+   servidor.sin_family = AF_INET;
+   servidor.sin_port = htons(PUERTO_FILAS);
+   servidor.sin_addr = *((struct in_addr *)he->h_addr);
+   bzero(&(servidor.sin_zero),8);
+   if(connect(fd, (struct sockaddr *)&servidor,sizeof(struct sockaddr))==-1)
+   {
+      printf("connect() error\n");
+      exit(-1);
+   }
+   if ((numbytes=recv(fd,buf,99,0)) == -1)
+   {
+      printf("Error en recv() \n");
+      exit(-1);
+   }
+   buf[numbytes]='\0';
+   close(fd);
+
+   /* Parte 2: multiplicar los numeros de la fila */
+   sscanf(buf,"%d %d %d %d",&fila,&a,&b,&c);
+   resultado = (long)a * b * c;
+   printf("Fila %d recibida: %d %d %d\n",fila,a,b,c);
+   printf("Resultado: %d x %d x %d = %ld\n",a,b,c,resultado);
+
+   /* Parte 3: mandar el resultado al coordinador por UDP */
+   if((fd=socket(AF_INET,SOCK_DGRAM,0))==-1)
+   {
+      perror("socket");
+      exit(1);
+   }
+   servidor.sin_port = htons(PUERTO_RESULTADOS);
+   sprintf(buf,"fila %d = %ld",fila,resultado);
+   if((numbytes=sendto(fd,buf,strlen(buf),0,(struct sockaddr *)&servidor,sizeof(struct sockaddr))) == -1)
+   {
+      perror("sendto");
+      exit(1);
+   }
+   printf("Enviados %d bytes hacia %s\n",numbytes,inet_ntoa(servidor.sin_addr));
+   close(fd);
+   return 0;
+}
+\end{lstlisting}
+\clearpage
